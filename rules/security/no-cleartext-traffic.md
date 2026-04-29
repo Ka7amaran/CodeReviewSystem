@@ -27,8 +27,10 @@ network can intercept it.
    must NOT contain a `<base-config cleartextTrafficPermitted="true">`
    without a domain-scoped `<domain-config>` overriding it.
 3. If cleartext is intentionally required (e.g., a local dev endpoint),
-   it must be scoped via `<domain-config>` AND declared in
-   `.claude/CLAUDE.md` `accepted-risks` with a written reason.
+   it MUST be scoped via `<domain-config>` in
+   `network_security_config.xml`. Per-domain scoping is the only
+   acceptable workaround — this rule cannot be silenced via
+   `accepted-risks`.
 
 ## Як це виглядає у поганому проекті
 
@@ -62,7 +64,7 @@ If cleartext truly is needed for one domain, use:
   app/src/main/AndroidManifest.xml:<line>
   android:usesCleartextTraffic="true" set on <application>.
   Fix: remove the attribute, or scope cleartext to one domain via network_security_config.xml.
-  See: examples/ (none yet — see https://developer.android.com/training/articles/security-config)
+  See: https://developer.android.com/training/articles/security-config
 ```
 
 ## Виключення

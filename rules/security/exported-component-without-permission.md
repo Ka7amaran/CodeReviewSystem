@@ -33,8 +33,10 @@ other exported component must either (a) declare
       verify the permission's `protectionLevel` is `signature` if it
       is a custom one).
    c. Otherwise — flag.
-3. Cross-reference with `accepted-risks`. If suppressed, downgrade to
-   `info`.
+3. Cross-reference with `accepted-risks`. If the rule's `id` appears
+   there with a non-empty reason, the agent's procedure (step 4.b)
+   handles suppression — this rule does not need to do anything extra
+   in step 3. Just enumerate violations as `warning` findings.
 
 ## Як це виглядає у поганому проекті
 

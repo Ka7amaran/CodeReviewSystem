@@ -18,6 +18,11 @@ seed, OneSignal app id, signing salt, or backend URL stored as a plain
 `const val` provides zero protection. Junk-character obfuscation
 (building a string from a `charArrayOf(...)` with index picking) is
 trivially reversible by any reverse-engineer with five minutes.
+This rule deliberately overlaps with `obfuscation/seed-keys-not-plain-string`;
+both will fire on the same finding from different angles. Do not
+deduplicate — they target different fixes (security: don't ship the
+secret; obfuscation: even if you ship it, it can't masquerade as
+protection).
 
 ## Що перевірити
 
@@ -33,9 +38,18 @@ trivially reversible by any reverse-engineer with five minutes.
       (`http://`, `https://api.`, `https://` + IP).
 3. Distinguish from already-encrypted blobs (those usually pair with a
    visible AES/Base64 decryption helper). If the file imports
-   `javax.crypto.Cipher` and decrypts the blob via a helper, downgrade
-   to `warning` instead of `error`, but still report — the seed itself
-   is the weak link.
+   `javax.crypto.Cipher`, the literal is likely an encrypted payload
+   rather than a raw seed; STILL report it (the seed feeding decryption
+   is the actual weak link). When this is the case, append the
+   suffix ` (decryption helper present — still flagged because the seed itself remains the weak link)` to the finding's first line.
+4. To avoid false positives, fire a finding only when AT LEAST ONE of:
+   a. Step 2.b matches (the variable name itself contains a secret-like
+      token), OR
+   b. Step 2.a matches AND the file contains crypto-adjacent imports or
+      tokens nearby — `javax.crypto.*`, `Cipher`, `Mac`, `KeyGenerator`,
+      `KeyStore`, `SecretKeySpec`, `MessageDigest`.
+   Plain-looking long strings without either signal (e.g., resource ids,
+   public URLs) are NOT findings.
 
 ## Як це виглядає у поганому проекті
 
@@ -61,7 +75,7 @@ removes from source) and treat the rule as "warning at minimum".
 ```
 [security/no-hardcoded-secrets] ERROR
   <file>:<line>
-  Plain-string secret/seed: <variable-name> = "<first-8-chars>...<last-4>" (<length> chars).
+  Plain-string secret/seed: <variable-name> = "<first-8-chars>...<last-4>" (<length> chars).<optional decryption-helper suffix>
   Fix: do not embed seeds as compile-time string constants. Move to BuildConfig from gradle.properties at minimum, or to NDK/KeyStore for production.
   See: https://developer.android.com/privacy-and-security/keystore
 ```
@@ -69,7 +83,7 @@ removes from source) and treat the rule as "warning at minimum".
 ## Виключення
 
 Дозволено через `accepted-risks`, **тільки** якщо:
-- це not a credential/secret (наприклад, public namespace prefix), і
-- код містить коментар, що пояснює чому.
+- це не credential/secret (наприклад, public namespace prefix), і
+- код містить коментар з обґрунтуванням.
 
 Інакше — заборонено.

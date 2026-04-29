@@ -44,7 +44,7 @@ targetSdk: 36
 # To actually suppress a rule, write a non-commented line:
 #   <rule-id>: <reason why this risk is accepted>
 # Example:
-# security/exported-component-without-permission: MainActivity is the launcher; intent-filter is the permission boundary
+# security/exported-component-without-permission: DeepLinkActivity validates host/scheme before dispatching; deliberately public
 
 ## rule-overrides
 
