@@ -18,7 +18,7 @@ since: "<semver>"                 # plugin version that introduced the rule
 ---
 ```
 
-## Body (5 mandatory sections, each `## Heading`)
+## Body (6 mandatory sections, each `## Heading`)
 
 1. **`## Чому це важливо`** — 2–6 sentences explaining business/security
    context. Without this section the developer does not understand why
