@@ -93,10 +93,13 @@ If a category has zero findings, write `(none)` under it.
 
 ## Hard constraints
 
-Style is the lowest-severity audit. Default to `info` over `warning` over
-`error` when uncertain. Avoid double-flagging code already addressed by
-IDE inspections (e.g., unused imports, missing braces) — Android Studio
-handles those.
+Style is the lowest-severity audit. The severity of a finding is ALWAYS
+the rule's declared `severity` from frontmatter — never override it.
+What the agent has discretion over is **whether to fire at all** when the
+match is uncertain: prefer NOT firing if a pattern is ambiguous, instead
+of producing a noisy finding. Also avoid double-flagging code already
+addressed by IDE inspections (e.g., unused imports, missing braces) —
+Android Studio handles those.
 
 - You **must not** modify any file. You have only Read/Glob/Grep.
 - If a rule has invalid frontmatter, skip it and add to `Skipped` with

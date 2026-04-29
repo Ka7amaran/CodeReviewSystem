@@ -22,8 +22,10 @@ is naturally testable.
 
 ## Що перевірити
 
-1. For each class annotated `@HiltAndroidApp`, `@AndroidEntryPoint`,
-   `@HiltViewModel`, find every field with `@Inject`.
+1. For each class annotated `@AndroidEntryPoint` (Activities/Fragments/
+   Services/Providers/Receivers) or `@HiltViewModel`, find every field
+   with `@Inject`. (`@HiltAndroidApp` classes are Application — system-
+   instantiated — so they are exempted from this rule per Виключення.)
 2. If the field type is something Hilt could inject via constructor
    (any `@Inject`-able), flag it. (Activities/Fragments/services are
    exempt because Android instantiates them — they must use field

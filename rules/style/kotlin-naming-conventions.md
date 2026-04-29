@@ -20,8 +20,10 @@ generated or copied from a different ecosystem.
 
 ## Що перевірити
 
-1. Top-level `const val` declarations: name should be `SCREAMING_SNAKE_CASE`.
-   Flag if camelCase or PascalCase.
+1. Top-level AND companion-object `const val` declarations: name should
+   be `SCREAMING_SNAKE_CASE`. Flag if camelCase or PascalCase. (Most real
+   Android codebases place constants inside `companion object`, not at
+   true top-level — both must be checked.)
 2. Function names: `camelCase`. Flag PascalCase functions
    (except `@Composable` functions, which are PascalCase by convention).
 3. Class names: `PascalCase`.
