@@ -45,8 +45,9 @@ slash-command wrapper is the single contractual source.
 ### Step 1 — Validate the project root
 
 The current working directory (cwd) must be an Android project root.
-Check whether either `app/build.gradle.kts` or `app/build.gradle` exists
-(use `Glob` or `Read`; Bash is allowed, see Hard constraints).
+Check whether either `app/build.gradle.kts` or `app/build.gradle` exists.
+- Use the `Glob` or `Read` tool to check existence. Bash existence
+  checks (`test -f`, `ls`) are NOT in the allow-list.
 
 If neither file exists, abort with this exact message and stop processing:
 
@@ -70,6 +71,11 @@ states; the one chosen drives the `**CLAUDE.md:**` header line in step 8:
   malformed. Skip the malformed section silently (do not fail), and in the
   header note which section was unparseable, e.g.
   `CLAUDE.md: partially parseable ⚠️ (expected-values section unparseable, ignored)`.
+- An empty section (header present but body contains only whitespace
+  or `#`-prefix comments) is considered to PARSE CLEANLY with an
+  empty value. Only structurally malformed sections (e.g., a list
+  where bullets are not `- ` prefixed, or `<key>: <value>` lines
+  with broken syntax) trigger `partially parseable ⚠️` status.
 
 For each section that parses cleanly, hold the parsed values in memory.
 You will use:
@@ -121,6 +127,12 @@ Three Task tool calls in ONE message:
 - subagent_type / agent: `security-auditor`, prompt with category `security`.
 - subagent_type / agent: `obfuscation-auditor`, prompt with category `obfuscation`.
 
+Note (R2 separation): each sub-agent re-reads the project's
+`.claude/CLAUDE.md` itself. The orchestrator does NOT forward parsed
+values into the sub-agent prompts. This preserves the principle that
+rules and project context are sub-agent inputs, not orchestrator
+state.
+
 Record the wall-clock start time before dispatch and the wall-clock end
 time after all three return. Per-agent wall-clock is the difference if
 the runtime exposes it; otherwise omit per-agent times and report only
@@ -147,6 +159,14 @@ partial nature under `## Skipped rules`.
 
 If at least one failure exists, the verdict in step 7 will be `INCOMPLETE`.
 
+- The `since: <semver>` frontmatter field of each rule (spec §9.5)
+  is checked by the SUB-AGENT, not by the orchestrator. If a rule's
+  `since` is newer than the plugin version, the sub-agent skips it
+  and lists it in its own `### Skipped rules` subsection with reason
+  `rule requires plugin version <X> or newer; current is <Y>`.
+  The orchestrator forwards these entries to the final report's
+  `## Skipped rules` section unchanged.
+
 ### Step 6 — Cross-cutting analysis
 
 For MVP, implement EXACTLY ONE cross-cutting check.
@@ -155,9 +175,23 @@ For MVP, implement EXACTLY ONE cross-cutting check.
 1. The security sub-report contains at least one finding tagged with
    `[security/exported-component-without-permission]` (search the security
    report text for that exact bracketed tag), AND
-2. For each such finding, you can extract the component class name from
-   the finding text (the rule's `## Як доповідати` template puts the
-   FQCN in the body), AND
+2. For each such finding:
+   - Extract the raw component name from the finding text. The security
+     rule's `## Як доповідати` template emits `<component-tag> "<name>"` —
+     `<name>` is what was in the manifest's `android:name` attribute,
+     which is **almost always a relative form** (e.g., `.MainActivity`,
+     `.push.PushService`).
+   - Canonicalize the name to a fully-qualified class name (FQCN):
+     a. If the raw name starts with `.`, prepend the manifest's `package=`
+        attribute. Read it from `app/src/main/AndroidManifest.xml`
+        (already in your allow-list).
+     b. If the raw name contains no `.` at all, also prepend the package
+        (relative single-segment names).
+     c. If the raw name already contains one or more `.` segments without
+        a leading `.`, treat it as already-FQCN.
+   - Use the FQCN form in BOTH (i) the `-keep` pattern coverage check and
+     (ii) the suggested fix in the cross-cutting finding.
+   AND
 3. That component class is NOT covered by any `-keep` pattern in
    `app/proguard-rules.pro`. To check coverage:
    - Read `app/proguard-rules.pro` (if absent, treat as empty — every
@@ -210,11 +244,16 @@ Verdict (apply the FIRST matching rule):
 
 ### Step 8 — Format the final report
 
-Read the plugin version from `<PLUGIN_ROOT>/.claude-plugin/plugin.json`
-(parse JSON, take the `version` field). If the file is unreadable or has
-no `version`, use the literal string `unknown`.
+- Read the plugin version from `<PLUGIN_ROOT>/.claude-plugin/plugin.json`.
+  Use the `Read` tool (NOT Bash) — `jq` and similar parsers are not in
+  your allow-list. Parse the JSON in your reasoning to extract the
+  `version` field. Use that string verbatim in the `**Plugin version:**`
+  header field.
 
-Compute the date string with Bash: `date "+%Y-%m-%d %H:%M"`.
+- Compute the report-header date ONCE at the start of step 8: run
+  `date "+%Y-%m-%d %H:%M"` and bind to a single conceptual variable
+  (e.g., `REPORT_DATE`). Use this value in the `**Date:**` field. Do
+  NOT recompute later in the step.
 
 Produce the report with this exact skeleton (substitute placeholders):
 
@@ -224,7 +263,13 @@ Produce the report with this exact skeleton (substitute placeholders):
 **Date:** <YYYY-MM-DD HH:MM>
 **Plugin version:** <semver-or-unknown>
 **Project:** <absolute path of cwd>
-**CLAUDE.md:** <found ✓ | missing ⚠️ | partially parseable ⚠️ (<note>)>
+**CLAUDE.md:** <one of:>
+  - `found ✓` — file exists and all sections parse cleanly. No parenthetical.
+  - `missing ⚠️` — file does not exist. No parenthetical.
+  - `partially parseable ⚠️ (<sections>)` — file exists; one or more
+    sections were unparseable. The parenthetical lists the unparseable
+    section names joined by `, ` (e.g., `partially parseable ⚠️
+    (expected-values, accepted-risks)`).
 
 ---
 
@@ -280,26 +325,69 @@ agent: name, reason, and any partial output verbatim)
 
 ## Run details
 
-- style-auditor:       <wall-clock if available>, <N> rules applied, <M> findings
-- security-auditor:    <wall-clock if available>, <N> rules applied, <M> findings
-- obfuscation-auditor: <wall-clock if available>, <N> rules applied, <M> findings
+- style-auditor:       <wall-clock or "n/a">, <rules-applied or "n/a"> rules applied, <findings-count> findings
+- security-auditor:    <wall-clock or "n/a">, <rules-applied or "n/a"> rules applied, <findings-count> findings
+- obfuscation-auditor: <wall-clock or "n/a">, <rules-applied or "n/a"> rules applied, <findings-count> findings
 - orchestrator merge:  <X> cross-cutting findings
-- Total wall-clock:    <wall-clock>
+- Total wall-clock:    <wall-clock or "n/a">
 ```
 
 Detailed rules for filling sections:
 
-- **Per-category counts.** Parse each sub-report's `### Errors`, `### Warnings`, `### Info`, `### Skipped rules` subsections; count entries. A finding entry starts with `[<rule-id>] <SEVERITY>`. Cross-cutting findings count toward neither Style nor Security nor Obfuscation rows — they only contribute to the `**Total**` row and to the `## 🔗 Cross-cutting findings` section.
-- **Sort order in `## 🔴 Errors`, `## 🟡 Warnings`, `## ℹ️ Info`.** Sort by file path (lexicographic), then by line number ascending. Findings without a parseable `<file>:<line>` go last, in original order.
+- **Per-category counts.** Parse each sub-report's `### Errors`, `### Warnings`, `### Info`,
+  `### Skipped rules` subsections; count entries.
+  A "finding entry" is a paragraph starting with a line matching this
+  exact regex:
+
+^\[[a-z0-9\-/]+\] (ERROR|WARNING|INFO)$
+
+  Lines that don't match this anchor (truncated/malformed) are NOT
+  counted toward `Errors`/`Warnings`/`Info`. Surface them under
+  `## Skipped rules` with reason `malformed sub-report entry`.
+
+  Cross-cutting findings count toward neither Style nor Security nor Obfuscation rows — they only contribute to the `**Total**` row and to the `## 🔗 Cross-cutting findings` section.
+- **Sort order in `## 🔴 Errors`, `## 🟡 Warnings`, `## ℹ️ Info`.**
+
+  Within each severity, sort by file path (lexicographic), then by line
+  number (ascending).
+
+  Location extraction protocol:
+  - The location is on the SECOND non-blank line of the finding entry,
+    immediately below the `[<rule-id>] <SEVERITY>` header.
+  - Format: `  <file>:<line>` (two-space indent).
+  - Special cases:
+    - Convention `<file>:0` (e.g., `crypto-classes-keep-rules-present`
+      file-level finding) sorts as line 0 — first within that file.
+    - Cross-cutting findings whose location line lists multiple files
+      separated by ` + ` (e.g., `app/src/main/AndroidManifest.xml +
+      app/proguard-rules.pro`) sort by the FIRST file's path, line 0.
+    - Findings with no parseable location go last within their severity,
+      in the order they appeared in the sub-report.
 - **If a category has zero findings**, write `(none)` under that section heading.
 - **Findings inclusion.** Do NOT rewrite findings — copy each one verbatim from the sub-reports (and from step 6 for cross-cutting). Cross-cutting `error`-severity findings appear in BOTH `## 🔴 Errors` AND `## 🔗 Cross-cutting findings`.
 - **Skipped rules deduplication.** If the same `<rule-id>` appears in multiple sub-reports' Skipped sections (rare but possible), keep one entry, joining reasons with `; `.
 - **Agent failures section.** Omit entirely if `agent_failures` is empty. Do NOT write `(none)` and do NOT include the heading.
 - **No fabrication.** If a section has no content, write `(none)` (except `## ⚠️ Agent failures`, which is omitted entirely). Never invent findings to fill a section.
+- **Run details fallback values:**
+  - If wall-clock is not available from the runtime: write `n/a`.
+  - If a sub-report does not surface the `rules applied` count: write
+    `n/a`. (Sub-agent prompts mention the count as part of their
+    reports, but the orchestrator does not require parsing it; it's a
+    best-effort field.)
+  - `findings-count` = the count from Fix C2's regex.
 
 ### Step 9 — Save outputs (Format B + N3 archive)
 
-Compute timestamp with Bash: `date "+%Y-%m-%d-%H%M"`.
+- Compute the archive timestamp ONCE at the start of step 9: run
+  `date "+%Y-%m-%d-%H%M"` and bind to a single conceptual variable
+  (e.g., `TS`). Use the SAME value for BOTH the `.md` archive `mv`
+  AND the `.gdoc.txt` archive `mv`. Do NOT recompute between the two
+  moves — otherwise crossing a minute boundary produces mismatched
+  archive suffixes.
+- Timestamp granularity is one minute. Two `/android-review` runs
+  within the same minute will overwrite the previous archive entry.
+  This is acceptable for MVP and is documented behavior — do NOT
+  attempt to disambiguate via seconds, suffixes, or counters.
 
 Use `<project-id>` from step 3.
 
@@ -323,7 +411,7 @@ Sequence (use Bash for `mkdir`/`mv`/`date`/`pwd`/`basename` only):
    ```
    .claude/reports/<project-id>-android-review.md
    ```
-   Tools available for writing: you have only `Read, Glob, Grep, Bash, Task`. You do NOT have `Write` or `Edit`. To create the file, use Bash redirection via a heredoc, e.g. `cat > path <<'EOF' ... EOF`. This is the ONLY non-listed Bash form permitted in this agent because file creation is essential for the save step.
+   Tools available for writing: you have only `Read, Glob, Grep, Bash, Task`. You do NOT have `Write` or `Edit`. To create the file, use Bash redirection via a heredoc, e.g. `cat > path <<'__ANDROID_REVIEW_EOF__' ... __ANDROID_REVIEW_EOF__`. This is the ONLY non-listed Bash form permitted in this agent because file creation is essential for the save step.
 5. Generate the Google-Docs-friendly form (`.gdoc.txt`) by transforming
    the markdown according to the rules below, then write it to:
    ```
@@ -344,8 +432,9 @@ exact text produced in step 8:
 3. **Markdown links.** Replace `[text](url)` with `text (url)`.
 4. **Inline backticks.** Leave the backticks as-is. Google Docs renders
    them as plain text and that is acceptable.
-5. **Bullets.** Keep `- ` bullets as-is. Pick one style and stay
-   consistent throughout the document; do NOT mix with `• `.
+5. **Bullets.** Bullet markers: `- ` markdown bullets pass through as `- `.
+   `*` and `+` markdown bullets are converted to `- ` for consistency.
+   Do not introduce `• ` or other Unicode bullet characters.
 6. **Horizontal rules.** Replace `---` lines with a single blank line.
 7. **Bold/italic markup** (`**bold**`, `*italic*`). Strip the `**` and
    `*` markers; keep the inner text plain.
@@ -393,11 +482,20 @@ footer. Never retry.
   - `date "+%Y-%m-%d %H:%M"` and `date "+%Y-%m-%d-%H%M"`
   - `pwd`
   - `basename` (typically `pwd | xargs basename`)
-  - `cat > <path> <<'EOF' ... EOF` heredoc redirection — ONLY for writing
+  - `cat > <path> <<'__ANDROID_REVIEW_EOF__' ... __ANDROID_REVIEW_EOF__` heredoc redirection — ONLY for writing
     the two final report files in step 9, because the agent's tool list
     (`[Read, Glob, Grep, Bash, Task]`) excludes `Write`/`Edit`.
   Any other Bash command (rm, git, curl, wget, edits, network, package
   managers, gradle, etc.) is FORBIDDEN.
+- **Heredoc sentinel.** The heredoc sentinel for report writing MUST be the literal token
+  `__ANDROID_REVIEW_EOF__` and MUST be wrapped in single quotes
+  (`<<'__ANDROID_REVIEW_EOF__'`) to disable shell expansion. Do NOT
+  shorten it to `EOF`: a finding may contain the literal string `EOF`
+  (e.g., a Kotlin file path containing it, or text from a project's
+  README) which would terminate the heredoc early and silently
+  truncate the report. Quoting is also load-bearing — without it,
+  `$VAR`/backtick/backslash sequences in code samples expand and
+  corrupt findings.
 - **PLUGIN_ROOT contract.** If the slash-command did not pass
   `PLUGIN_ROOT`, abort per the message in the Important context section.
   Do not infer.
