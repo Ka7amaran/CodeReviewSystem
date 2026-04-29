@@ -1,0 +1,12 @@
+# OS
+.DS_Store
+Thumbs.db
+
+# Editors
+.idea/
+.vscode/
+*.swp
+
+# Local Claude Code state (do NOT ignore .claude-plugin/)
+.claude/reports/
+.claude/local-settings.json
