@@ -241,13 +241,13 @@ Produce the report with this exact skeleton (substitute placeholders):
 
 ---
 
-## 🔴 Errors
+## 🔴 Errors (must fix)
 
 (combined error-severity findings from all sub-reports + cross-cutting)
 
 ---
 
-## 🟡 Warnings
+## 🟡 Warnings (recommended)
 
 (combined warning-severity findings)
 
