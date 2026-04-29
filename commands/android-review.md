@@ -58,10 +58,18 @@ claude
 
 ## Read-only safety
 
-This command is read-only on your project source. The plugin denies
-write tools (`Edit`) and mutating shells at the harness level — it
-cannot modify your code. The only file system writes are to
-`.claude/reports/` (for the report files), via the `Write` tool.
+This command does not modify your project source code. `Edit` and
+mutating shell commands (`rm`, `git`, `curl`, `wget`, `npm`, `pip`,
+`brew`) are denied at the harness level — the agent literally cannot
+execute them, regardless of input.
+
+`Write` and a small set of file-system Bash verbs (`mkdir`, `mv`,
+`cat` for heredoc, `date`, `pwd`, `basename`, `echo`) are allowed
+because the orchestrator must save report files. The orchestrator's
+procedure restricts those writes to `.claude/reports/` — this is
+**procedural** (not enforced at the harness level). If you observe
+the orchestrator writing outside `.claude/reports/`, please report
+it as a bug.
 
 ## Note on PLUGIN_ROOT
 
@@ -79,17 +87,30 @@ running this command.
 
 ---
 
-Now: dispatch the **orchestrator** sub-agent. The orchestrator REQUIRES
-the plugin root path to be supplied in its prompt — it aborts otherwise.
+## Dispatching the agent
 
-Use the `Task` tool with `subagent_type: orchestrator` and this prompt:
+Step 1 — resolve the plugin root via Bash:
+
+Run: `echo "$CLAUDE_PLUGIN_ROOT"`. Capture stdout as `<plugin-root>`.
+
+If the captured value is empty or the literal string `$CLAUDE_PLUGIN_ROOT`,
+abort and tell the user:
+
+> The Claude Code plugin runtime did not expose `CLAUDE_PLUGIN_ROOT`.
+> The android-review plugin cannot run without it. Please report this
+> to the plugin maintainer.
+
+Step 2 — dispatch the **orchestrator** sub-agent:
+
+Use the `Task` tool with `subagent_type: orchestrator` and this prompt body
+(substitute `<plugin-root>` with the actual value captured in step 1
+— do NOT pass the literal string `${CLAUDE_PLUGIN_ROOT}`):
 
 ```
-PLUGIN_ROOT: ${CLAUDE_PLUGIN_ROOT}
+PLUGIN_ROOT: <plugin-root>
 
-Run a complete Android code review on the project at the current
-working directory. Follow your system prompt's procedure exactly.
+Run a complete Android code review on the project at the current working directory. Follow your system prompt's procedure exactly.
 ```
 
-After the orchestrator returns its markdown report, print it verbatim
-to the user.
+Step 3 — after the agent returns its markdown report, print it
+verbatim to the user.

@@ -19,6 +19,7 @@ permissions:
     - "Bash(cat:*)"
     - "Bash(ls:*)"
     - "Bash(pwd:*)"
+    - "Bash(echo:*)"
 ---
 
 # /android-review-obfuscation
@@ -72,18 +73,30 @@ running this command.
 
 ---
 
-Now: dispatch the **obfuscation-auditor** sub-agent. The agent REQUIRES
-the plugin root path in its prompt.
+## Dispatching the agent
 
-Use the `Task` tool with `subagent_type: obfuscation-auditor` and this
-prompt:
+Step 1 — resolve the plugin root via Bash:
+
+Run: `echo "$CLAUDE_PLUGIN_ROOT"`. Capture stdout as `<plugin-root>`.
+
+If the captured value is empty or the literal string `$CLAUDE_PLUGIN_ROOT`,
+abort and tell the user:
+
+> The Claude Code plugin runtime did not expose `CLAUDE_PLUGIN_ROOT`.
+> The android-review plugin cannot run without it. Please report this
+> to the plugin maintainer.
+
+Step 2 — dispatch the **obfuscation-auditor** sub-agent:
+
+Use the `Task` tool with `subagent_type: obfuscation-auditor` and this prompt body
+(substitute `<plugin-root>` with the actual value captured in step 1
+— do NOT pass the literal string `${CLAUDE_PLUGIN_ROOT}`):
 
 ```
-Plugin root: ${CLAUDE_PLUGIN_ROOT}
+Plugin root: <plugin-root>
 
-Run an obfuscation audit on the Android project at the current working
-directory. Follow your system prompt's procedure exactly. Return the
-markdown report only.
+Run an obfuscation audit on the Android project at the current working directory. Follow your system prompt's procedure exactly. The agent additionally reads the project's `## critical-classes` section from .claude/CLAUDE.md if present. Return the markdown report only.
 ```
 
-After the agent returns its report, print it verbatim to the user.
+Step 3 — after the agent returns its markdown report, print it
+verbatim to the user.
