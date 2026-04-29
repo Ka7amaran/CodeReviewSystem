@@ -6,7 +6,7 @@ with `/android-review`. It serves two purposes simultaneously:
 1. Project context auto-loaded by Claude Code.
 2. Machine-readable declarations parsed by the orchestrator.
 
-## Template (copy-paste, then fill 4 sections)
+## Template (copy-paste, then fill the required sections)
 
 ```markdown
 # Project context for Claude Code
@@ -35,11 +35,16 @@ targetSdk: 36
 
 ## sensitive-files
 
-- app/src/main/java/<path-glob>/**
+- <app/src/main/java/com/example/app/crypto/**>
+- <app/src/main/java/com/example/app/data/api/**>
 
 ## accepted-risks
 
-# rule-id: justification
+# Lines starting with `#` are comments and are IGNORED by the orchestrator.
+# To actually suppress a rule, write a non-commented line:
+#   <rule-id>: <reason why this risk is accepted>
+# Example:
+# security/exported-component-without-permission: MainActivity is the launcher; intent-filter is the permission boundary
 
 ## rule-overrides
 
@@ -52,10 +57,10 @@ targetSdk: 36
 |--------------------|--------------------------------------------------------------------|-----------|
 | `project-id`       | Human-readable id used in report titles and filenames.             | Yes       |
 | `expected-values`  | Optional baseline validation of `applicationId`/`namespace`/SDK.   | No        |
-| `critical-classes` | Glob patterns that must be covered by `-keep` rules.               | Yes (recommended) |
-| `sensitive-files`  | Glob patterns where the security agent searches harder.            | Yes (recommended) |
+| `critical-classes` | Glob patterns that must be covered by `-keep` rules.               | Recommended |
+| `sensitive-files`  | Glob patterns where the security agent searches harder.            | Recommended |
 | `accepted-risks`   | `<rule-id>: <reason>` — silences a rule if its "Виключення" allows.| Optional  |
-| `rule-overrides`   | Reserved for future R3 per-project rule parameter overrides.       | Leave empty |
+| `rule-overrides`   | Reserved for future R3 per-project rule parameter overrides (unparsed in M1). | Leave empty |
 
 ## What happens if `.claude/CLAUDE.md` is missing
 

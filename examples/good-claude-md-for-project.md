@@ -32,8 +32,9 @@ targetSdk: 36
 
 ## accepted-risks
 
-# Example: this project intentionally suppresses one rule with a written reason.
-# security/exported-component-without-permission: MainActivity is the launcher; intent-filter is the permission boundary.
+# This project intentionally suppresses one rule with a written reason.
+# Lines without a leading `#` are active suppressions; commented lines are ignored.
+security/exported-component-without-permission: MainActivity is the launcher; intent-filter is the permission boundary
 
 ## rule-overrides
 
