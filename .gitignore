@@ -8,5 +8,4 @@ Thumbs.db
 *.swp
 
 # Local Claude Code state (do NOT ignore .claude-plugin/)
-.claude/reports/
-.claude/local-settings.json
+.claude/
