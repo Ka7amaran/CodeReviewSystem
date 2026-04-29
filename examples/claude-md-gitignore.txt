@@ -1,0 +1,2 @@
+# Claude Code Android Review reports (auto-generated)
+.claude/reports/
