@@ -23,7 +23,17 @@ in debug. This is one of the most common pre-launch outages.
 
 ## Що перевірити
 
-1. In `app/build.gradle.kts` (or `.gradle`), find `buildTypes { release { ... } }`.
+1. Locate the active gradle file: `app/build.gradle.kts` if present;
+   otherwise `app/build.gradle`. If BOTH exist (unusual, indicates a
+   partial migration), prefer `app/build.gradle.kts` and emit a
+   `warning`-severity supplementary finding noting the ambiguity:
+
+   [obfuscation/dual-gradle-files] WARNING
+     app/
+     Both build.gradle.kts and build.gradle exist; using .kts and ignoring .gradle.
+     Fix: complete the migration to .kts and delete the legacy .gradle file.
+
+   Then in the chosen file, find `buildTypes { release { ... } }`.
 2. Detect `isMinifyEnabled = true` (Kotlin DSL) or
    `minifyEnabled true` (Groovy).
 3. If minify is enabled, read `app/proguard-rules.pro`.

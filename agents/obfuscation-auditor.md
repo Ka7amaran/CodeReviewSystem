@@ -48,12 +48,27 @@ This is a bug in the orchestrator or slash-command wrapper.
    - If `.claude/CLAUDE.md` is missing, proceed with empty
      `accepted-risks`.
    - Also parse the `## critical-classes` section. Each line starting with
-     `- ` is a glob pattern (e.g., `com.example.app.crypto.**`).
+     `- ` is a glob pattern. After stripping leading `- `, strip trailing whitespace
+     and any trailing `#`-comment before treating the remainder as a glob pattern.
    - If the section is empty or missing, build a fallback list by scanning
      `app/src/main/java/**` for class names matching
      /(?i)(crypto|decrypt|cipher|encrypt|seed|secret|token|auth|key)/.
-     Take up to 20 such classes. Note in the report under "auto-detected
-     critical classes — consider declaring in CLAUDE.md".
+     Sort matches lexicographically by file path, then by class name within
+     the same file. Take the FIRST 20. This ordering must be deterministic
+     across runs and machines.
+   - Surface the auto-detected list as a synthesized `info`-severity
+     finding using this exact template (this is the named report slot for
+     auto-detection — do NOT improvise placement):
+
+     [obfuscation/auto-detected-critical-classes] INFO
+       .claude/CLAUDE.md (missing or empty `## critical-classes`)
+       Auto-detected potential critical classes (top 20):
+         <class1>
+         <class2>
+         ...
+       Fix: declare these (or your project's actual critical classes) in
+       `.claude/CLAUDE.md` `## critical-classes` to lock in coverage and
+       make subsequent runs deterministic.
 
 4. For each surviving rule:
    a. Read the full rule body.

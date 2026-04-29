@@ -27,8 +27,15 @@ crash is hard to reproduce locally without a release build.
    that `app/proguard-rules.pro` contains at least one `-keep` (or
    `-keep class`, `-keepclassmembers`, `-keepclasseswithmembers`)
    rule whose pattern covers it.
-3. The pattern must use `**` (deep wildcard) for `**` globs, or `*`
-   for shallow ones, matching the glob's intent.
+3. ProGuard wildcard semantics are NOT the same as filesystem globs:
+   - In ProGuard, `*` matches a single class-name segment (no dots).
+   - In ProGuard, `**` matches across sub-packages (dots allowed).
+   So a critical-classes glob ending in `.**` (e.g., `com.example.crypto.**`)
+   requires a ProGuard `-keep` whose pattern ALSO ends in `.**`. A
+   `-keep class com.example.crypto.*` covers ONLY classes directly in
+   that package — it does NOT cover sub-packages and is INSUFFICIENT.
+   Flag the rule as ERROR if the only matching keep pattern uses `.*`
+   when the critical-classes glob uses `.**`.
 
 ## Як це виглядає у поганому проекті
 
@@ -51,7 +58,7 @@ For `critical-classes` containing `com.example.app.core.crypto.**`:
 
 ```
 [obfuscation/crypto-classes-keep-rules-present] ERROR
-  app/proguard-rules.pro
+  app/proguard-rules.pro:0
   No -keep rule covers critical-classes pattern: <pattern>
   Fix: add `-keep class <pattern> { *; }` (and consider `-keepclassmembers` if you only need members).
   See: examples/good-proguard-rules.pro
@@ -60,3 +67,9 @@ For `critical-classes` containing `com.example.app.core.crypto.**`:
 ## Виключення
 
 Жодних. If a class is in `critical-classes`, it must be kept.
+
+## Convention
+
+This rule reports `:0` as the line slot when the violation is the
+absence of a keep rule (file-level). Sorting should treat `:0` as
+"sort first within file."
