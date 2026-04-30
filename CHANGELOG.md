@@ -4,6 +4,15 @@ All notable changes to the `android-review` plugin will be documented here.
 Format follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/);
 versioning follows [Semver](https://semver.org/).
 
+## [1.1.1] — 2026-04-30
+
+### Changed
+
+- Sync plugin description across `plugin.json` and `marketplace.json`.
+  Both now read: "Automated code review for Android projects.
+  Orchestrator + 3 parallel sub-agents reading declarative markdown
+  rules."
+
 ## [1.1.0] — 2026-04-30
 
 ### Added
