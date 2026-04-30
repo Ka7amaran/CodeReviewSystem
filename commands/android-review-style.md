@@ -32,21 +32,37 @@ claude
 
 ## Dispatching the agent
 
-The plugin root path (hardcoded for local install; revisit when published to GitHub):
+### Step 1 — Locate the plugin root (runtime auto-detection)
 
-PLUGIN_ROOT_RESOLVED: /Users/mac/CodeReviewSystem
-
-Use the `Task` tool with `subagent_type: style-auditor` and the prompt
-body below. Substitute the value of `PLUGIN_ROOT_RESOLVED` from the line
-above into the `Plugin root:` field — do NOT pass any literal
-`${...}` placeholder, and do NOT pass an empty value.
-
-Prompt to send via the Task tool:
+Claude Code 2.1.x does NOT expose `${CLAUDE_PLUGIN_ROOT}` to slash
+commands. Discover the plugin's installation directory at runtime:
 
 ```
-Plugin root: <value of PLUGIN_ROOT_RESOLVED above>
+ls -td "$HOME/.claude/plugins/cache/android-review-marketplace/android-review/"*/ 2>/dev/null | head -1
+```
+
+Take the first line of stdout (the most recently-installed version's
+directory). Strip any trailing slash. Bind as `PLUGIN_ROOT`.
+
+If the command produced no output, abort with:
+
+```
+Cannot locate the android-review plugin's installation under $HOME/.claude/plugins/cache/android-review-marketplace/. Reinstall via /plugins → Marketplaces → Update marketplace.
+```
+
+### Step 2 — Dispatch the style-auditor
+
+Use the `Task` tool with `subagent_type: style-auditor` and the prompt
+below. Substitute the discovered `PLUGIN_ROOT` value into the
+`Plugin root:` field.
+
+Prompt:
+
+```
+Plugin root: <PLUGIN_ROOT>
 
 Run a style audit on the Android project at the current working directory. Follow your system prompt's procedure exactly. Return the markdown report only.
 ```
 
-After the agent returns its markdown report, print it verbatim to the user.
+After the agent returns, print its markdown report verbatim to the
+user.

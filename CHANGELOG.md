@@ -4,6 +4,16 @@ All notable changes to the `android-review` plugin will be documented here.
 Format follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/);
 versioning follows [Semver](https://semver.org/).
 
+## [1.0.1] — 2026-04-30
+
+### Fixed
+
+- **Portability:** plugin root is now auto-detected at runtime via
+  `ls -td "$HOME/.claude/plugins/cache/android-review-marketplace/android-review/"*/ | head -1`
+  in all 4 slash commands. Replaces the previous hardcoded
+  `/Users/mac/CodeReviewSystem` path that broke on any other machine.
+  The plugin is now installable on any Mac/Linux via `github:Ka7amaran/CodeReviewSystem`.
+
 ## [1.0.0] — 2026-04-30
 
 ### Added

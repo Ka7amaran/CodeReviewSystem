@@ -47,13 +47,14 @@ please report it as a bug.
 
 ---
 
-## Plugin root
+## Plugin root (runtime auto-detection)
 
-The plugin root path (hardcoded for local install; revisit when published to GitHub):
+Claude Code 2.1.x does NOT expose `${CLAUDE_PLUGIN_ROOT}` to slash
+commands. Instead, the plugin's installation directory must be
+discovered at runtime. Step 1.5 below is dedicated to this.
 
-PLUGIN_ROOT_RESOLVED: /Users/mac/CodeReviewSystem
-
-Use this value below wherever `<PLUGIN_ROOT>` appears.
+For all `<PLUGIN_ROOT>` substitutions in this file, use the value
+`PLUGIN_ROOT` computed in Step 1.5.
 
 ---
 
@@ -108,6 +109,34 @@ Do NOT generate a report. Do NOT save anything. Your turn ends.
 - ❌ Message followed by a `Bash(ls /Users/mac/StudioProjects/)` tool call (post-abort tool use; forbidden).
 
 ✅ GOOD: Exactly the two-line English message, then nothing.
+
+### Step 1.5 — Locate the plugin root
+
+The plugin's `rules/` directory and `.claude-plugin/plugin.json` live
+in the plugin's installation directory. Each Task tool prompt below
+needs `Plugin root: <PLUGIN_ROOT>`, and step 8 reads
+`<PLUGIN_ROOT>/.claude-plugin/plugin.json` for the version.
+
+Discover the path at runtime with one Bash call:
+
+```
+ls -td "$HOME/.claude/plugins/cache/android-review-marketplace/android-review/"*/ 2>/dev/null | head -1
+```
+
+Take the first line of stdout (the most recently-installed version's
+directory). Strip any trailing slash. Bind that string as `PLUGIN_ROOT`
+for the rest of the procedure.
+
+If the command produced no output (the plugin is not installed under
+that path), abort with this exact message and stop:
+
+```
+Cannot locate the android-review plugin's installation under $HOME/.claude/plugins/cache/android-review-marketplace/. Reinstall via /plugins → Marketplaces → Update marketplace.
+```
+
+This auto-detection makes the plugin portable: it works on any machine
+where the plugin was installed via the standard marketplace flow,
+regardless of the user's home directory.
 
 ### Step 2 — Read project context (`.claude/CLAUDE.md`)
 

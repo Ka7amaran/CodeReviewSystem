@@ -10,10 +10,17 @@ The review is purely static; no build, no APK analysis.
 
 ## Install
 
+In any Claude Code session:
+
 ```
-/plugin marketplace add github:<owner>/CodeReviewSystem
-/plugin install android-review@<owner>-marketplace
+/plugin marketplace add github:Ka7amaran/CodeReviewSystem
+/plugin install android-review@android-review-marketplace
 ```
+
+The plugin will be cached under
+`~/.claude/plugins/cache/android-review-marketplace/android-review/<version>/`.
+The slash commands auto-detect that path at runtime — no manual
+configuration needed.
 
 ## Use
 

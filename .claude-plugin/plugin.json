@@ -1,10 +1,10 @@
 {
   "name": "android-review",
-  "version": "1.0.0",
+  "version": "1.0.1",
   "description": "Automated code review for Android (Kotlin/Compose/Hilt) projects: style, security, obfuscation. Orchestrator + 3 parallel sub-agents reading declarative markdown rules.",
   "author": {
     "name": "Roman"
   },
-  "homepage": "https://github.com/<owner>/CodeReviewSystem",
+  "homepage": "https://github.com/Ka7amaran/CodeReviewSystem",
   "keywords": ["android", "kotlin", "code-review", "security", "proguard", "obfuscation"]
 }
