@@ -4,13 +4,14 @@ All notable changes to the `android-review` plugin will be documented here.
 Format follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/);
 versioning follows [Semver](https://semver.org/).
 
-## [1.0.0] — 2026-04-29
+## [1.0.0] — 2026-04-30
 
 ### Added
 
 - Initial MVP release.
-- Orchestrator command `/android-review` with cross-cutting analysis.
-- Three sub-agent commands: `/android-review-style`,
+- Slash command `/android-review` (orchestration runs in command body —
+  Claude Code 2.1.x forbids `Task` from inside a sub-agent).
+- Three standalone sub-agent commands: `/android-review-style`,
   `/android-review-security`, `/android-review-obfuscation`.
 - Nine starter rules (3 per category):
   - **style**: kotlin-naming-conventions, compose-stable-parameters,
@@ -22,7 +23,23 @@ versioning follows [Semver](https://semver.org/).
 - Project-level `.claude/CLAUDE.md` template with `project-id`,
   `expected-values`, `critical-classes`, `sensitive-files`,
   `accepted-risks` sections (R3 `rule-overrides` placeholder reserved).
+- Auto-detect fallback for `critical-classes` when CLAUDE.md is missing.
+- Cross-cutting check `cross/exported-component-not-keep` (FQCN
+  canonicalization through manifest's `package=`).
 - Dual-format report output: `<project-id>-android-review.md` and
   `<project-id>-android-review.gdoc.txt` saved to
   `.claude/reports/` with stable name + `archive/` history.
-- Read-only sandbox: plugin denies `Edit`, `Write`, mutating shells.
+- Compact terminal summary (table + verdict + counts + saved-paths);
+  full report stays in saved files.
+- Marketplace manifest (`.claude-plugin/marketplace.json`) for local
+  install.
+
+### Notes
+
+- Plugin root path is hardcoded to `/Users/mac/CodeReviewSystem` for
+  local install. Replace with the actual path or revisit with a
+  marketplace-source mechanism when published to GitHub.
+- Smoke-test pass on 2026-04-30 against `Juice-Master-Factory` and
+  `Joker-Speed-Seven`: S1 ✓, S2 ✓, S3 ✓, S4 ✓, S5 ⚠️ (graceful
+  fallback design verified architecturally; full `missing ⚠️` header
+  re-run skipped — see `docs/smoke-test.md`).
