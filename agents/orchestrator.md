@@ -56,7 +56,19 @@ This is not an Android project root. Expected app/build.gradle(.kts) — not fou
 Did you cd to the project root before launching claude?
 ```
 
-Do not generate a report, do not save anything.
+**Hard-abort discipline (load-bearing):**
+- Print the exact message above and STOP. End your turn immediately.
+- Do NOT generate a report, do NOT save anything.
+- Do NOT scan the filesystem for nearby Android projects (no `ls`, no
+  `Glob` over `~`, `/Users`, `~/StudioProjects/`, etc.).
+- Do NOT propose alternative projects to review.
+- Do NOT ask the user which project to check.
+- Do NOT request permissions to read sibling directories.
+- Do NOT call any further tools after the abort message.
+
+The user is responsible for `cd`-ing into the correct project root
+before launching `/android-review`. The orchestrator's contract is
+fail-fast: helpful recovery breaks determinism and blocks CI usage.
 
 ### Step 2 — Read project context (`.claude/CLAUDE.md`)
 
