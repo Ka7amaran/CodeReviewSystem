@@ -1,25 +1,5 @@
 ---
 description: Run only the security auditor on the current Android project. Faster than /android-review when you want a focused security pass.
-permissions:
-  deny:
-    - Edit
-    - Write
-    - "Bash(rm:*)"
-    - "Bash(git:*)"
-    - "Bash(curl:*)"
-    - "Bash(wget:*)"
-    - "Bash(npm:*)"
-    - "Bash(pip:*)"
-    - "Bash(brew:*)"
-  allow:
-    - Read
-    - Glob
-    - Grep
-    - "Bash(find:*)"
-    - "Bash(cat:*)"
-    - "Bash(ls:*)"
-    - "Bash(pwd:*)"
-    - "Bash(echo:*)"
 ---
 
 # /android-review-security

@@ -1,25 +1,5 @@
 ---
 description: Run only the style auditor on the current Android project. Kotlin/Compose/Hilt idioms.
-permissions:
-  deny:
-    - Edit
-    - Write
-    - "Bash(rm:*)"
-    - "Bash(git:*)"
-    - "Bash(curl:*)"
-    - "Bash(wget:*)"
-    - "Bash(npm:*)"
-    - "Bash(pip:*)"
-    - "Bash(brew:*)"
-  allow:
-    - Read
-    - Glob
-    - Grep
-    - "Bash(find:*)"
-    - "Bash(cat:*)"
-    - "Bash(ls:*)"
-    - "Bash(pwd:*)"
-    - "Bash(echo:*)"
 ---
 
 # /android-review-style

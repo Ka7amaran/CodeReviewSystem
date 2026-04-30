@@ -1,25 +1,5 @@
 ---
 description: Run only the obfuscation auditor on the current Android project. Focused on ProGuard/R8 rules and critical-class coverage.
-permissions:
-  deny:
-    - Edit
-    - Write
-    - "Bash(rm:*)"
-    - "Bash(git:*)"
-    - "Bash(curl:*)"
-    - "Bash(wget:*)"
-    - "Bash(npm:*)"
-    - "Bash(pip:*)"
-    - "Bash(brew:*)"
-  allow:
-    - Read
-    - Glob
-    - Grep
-    - "Bash(find:*)"
-    - "Bash(cat:*)"
-    - "Bash(ls:*)"
-    - "Bash(pwd:*)"
-    - "Bash(echo:*)"
 ---
 
 # /android-review-obfuscation

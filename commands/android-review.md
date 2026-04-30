@@ -1,30 +1,5 @@
 ---
 description: Run a full Android Review on the current project (style + security + obfuscation + cross-cutting analysis). Saves report to .claude/reports/.
-permissions:
-  deny:
-    - Edit
-    - "Bash(rm:*)"
-    - "Bash(git:*)"
-    - "Bash(curl:*)"
-    - "Bash(wget:*)"
-    - "Bash(npm:*)"
-    - "Bash(pip:*)"
-    - "Bash(brew:*)"
-  allow:
-    - Read
-    - Glob
-    - Grep
-    - Task
-    - Write
-    - "Bash(find:*)"
-    - "Bash(cat:*)"
-    - "Bash(ls:*)"
-    - "Bash(mkdir:*)"
-    - "Bash(mv:*)"
-    - "Bash(date:*)"
-    - "Bash(pwd:*)"
-    - "Bash(basename:*)"
-    - "Bash(echo:*)"
 ---
 
 # /android-review
