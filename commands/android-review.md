@@ -50,16 +50,31 @@ it as a bug.
 
 ## Dispatching the agent
 
+**Mandatory dispatch — no preflight from you:**
+
+You are running this slash command. Your single job is to dispatch the
+`orchestrator` sub-agent via the `Task` tool with the prompt below.
+
+DO NOT do ANY of the following yourself before dispatch:
+- Check whether the current directory looks like an Android project.
+- Run `pwd`, `ls`, `Glob`, or any tool to validate the cwd.
+- Decide that "this is not an Android project, so I'll skip the
+  dispatch and reply directly".
+- Suggest the user `cd` to a different directory.
+- Reply with anything BEFORE the dispatch.
+
+The orchestrator sub-agent is the ONLY component that decides whether
+to validate, abort, or proceed. If the cwd is not a valid Android
+project root, the orchestrator handles that case and emits a specific
+abort message — that is its job, not yours. Do not preempt it.
+
 The plugin root path (hardcoded for local install; revisit when published to GitHub):
 
 PLUGIN_ROOT_RESOLVED: /Users/mac/CodeReviewSystem
 
-Use the `Task` tool with `subagent_type: orchestrator` and the prompt body
-below. Substitute the value of `PLUGIN_ROOT_RESOLVED` from the line above
-into the `PLUGIN_ROOT:` field of the prompt — do NOT pass any literal
-`${...}` placeholder, and do NOT pass an empty value.
-
-Prompt to send via the Task tool:
+Use the `Task` tool with `subagent_type: orchestrator` and this prompt
+(substitute the value of `PLUGIN_ROOT_RESOLVED` above into the
+`PLUGIN_ROOT:` field; do not pass any literal `${...}` placeholder):
 
 ```
 PLUGIN_ROOT: <value of PLUGIN_ROOT_RESOLVED above>
@@ -67,5 +82,8 @@ PLUGIN_ROOT: <value of PLUGIN_ROOT_RESOLVED above>
 Run a complete Android code review on the project at the current working directory. Follow your system prompt's procedure exactly.
 ```
 
-After the orchestrator returns its markdown report, print it verbatim
-to the user.
+After the orchestrator returns its output, print it verbatim to the
+user. If the orchestrator returned an abort message (because cwd is
+not an Android project), print that abort message verbatim and stop —
+do NOT add follow-up suggestions, do NOT translate, do NOT offer to
+help find a project.
