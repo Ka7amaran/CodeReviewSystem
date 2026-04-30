@@ -1,0 +1,14 @@
+{
+  "name": "android-review-marketplace",
+  "owner": {
+    "name": "Roman"
+  },
+  "plugins": [
+    {
+      "name": "android-review",
+      "source": "./",
+      "description": "Automated code review for Android (Kotlin/Compose/Hilt) projects: style, security, obfuscation. Orchestrator + 3 parallel sub-agents reading declarative markdown rules.",
+      "version": "1.0.0"
+    }
+  ]
+}
