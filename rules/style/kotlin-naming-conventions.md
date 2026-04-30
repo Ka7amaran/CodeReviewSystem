@@ -54,9 +54,9 @@ val service: Service = ...
 ```
 [style/kotlin-naming-conventions] INFO
   <file>:<line>
-  <kind> "<name>" violates Kotlin naming convention (expected <expected-form>).
-  Fix: rename to <suggested>.
-  See: https://kotlinlang.org/docs/coding-conventions.html#naming-rules
+  <kind> "<name>" порушує конвенцію іменування Kotlin (очікувалось <expected-form>).
+  Як виправити: перейменуйте на <suggested>.
+  Див.: https://kotlinlang.org/docs/coding-conventions.html#naming-rules
 ```
 
 ## Виключення

@@ -62,9 +62,9 @@ other exported component must either (a) declare
 ```
 [security/exported-component-without-permission] WARNING
   app/src/main/AndroidManifest.xml:<line>
-  <component-tag> "<name>" is exported but has no android:permission and is not the launcher Activity.
-  Fix: add android:permission with a signature-level custom permission, or set android:exported="false" if not consumed externally.
-  See: https://developer.android.com/guide/topics/manifest/activity-element#exported
+  <component-tag> "<name>" експортовано, але не має android:permission і це не launcher-Activity.
+  Як виправити: додайте android:permission із власним signature-level дозволом, або встановіть android:exported="false", якщо компонент не споживається ззовні.
+  Див.: https://developer.android.com/guide/topics/manifest/activity-element#exported
 ```
 
 ## Виключення

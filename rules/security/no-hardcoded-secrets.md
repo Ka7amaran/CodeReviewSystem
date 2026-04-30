@@ -75,9 +75,9 @@ removes from source) and treat the rule as "warning at minimum".
 ```
 [security/no-hardcoded-secrets] ERROR
   <file>:<line>
-  Plain-string secret/seed: <variable-name> = "<first-8-chars>...<last-4>" (<length> chars).<optional decryption-helper suffix>
-  Fix: do not embed seeds as compile-time string constants. Move to BuildConfig from gradle.properties at minimum, or to NDK/KeyStore for production.
-  See: https://developer.android.com/privacy-and-security/keystore
+  Секрет/seed у вигляді plain-string: <variable-name> = "<first-8-chars>...<last-4>" (<length> симв.).<optional decryption-helper suffix>
+  Як виправити: не вшивайте seed як compile-time-константу. Мінімум — перенести у BuildConfig із gradle.properties; для production — у NDK або KeyStore.
+  Див.: https://developer.android.com/privacy-and-security/keystore
 ```
 
 ## Виключення

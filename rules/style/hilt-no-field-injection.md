@@ -56,9 +56,9 @@ class MyViewModel @Inject constructor(
 ```
 [style/hilt-no-field-injection] WARNING
   <file>:<line>
-  @Inject on field "<name>" in <class> (a Hilt component that supports constructor injection).
-  Fix: move to constructor parameters. Activities/Fragments/Services may keep field injection.
-  See: https://dagger.dev/hilt/quick-start
+  @Inject на полі "<name>" у <class> (Hilt-компонент, що підтримує constructor injection).
+  Як виправити: перенесіть у параметри конструктора. Activity/Fragment/Service можуть залишати field-injection.
+  Див.: https://dagger.dev/hilt/quick-start
 ```
 
 ## Виключення

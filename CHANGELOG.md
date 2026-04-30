@@ -4,6 +4,42 @@ All notable changes to the `android-review` plugin will be documented here.
 Format follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/);
 versioning follows [Semver](https://semver.org/).
 
+## [1.2.0] — 2026-04-30
+
+### Changed
+
+- **Ukrainian localization** for all user-facing report content:
+  - Section headers in saved markdown report and in compact terminal
+    summary (`Errors (must fix)` → `Помилки (обов'язково виправити)`,
+    `Warnings (recommended)` → `Попередження (рекомендується)`,
+    `Cross-cutting findings` → `Перехресні знахідки`, etc.).
+  - Verdict labels (`READY` → `ГОТОВО`, `NOT READY` → `НЕ ГОТОВО`,
+    `INCOMPLETE` → `НЕПОВНИЙ ПРОГІН`).
+  - Summary table column and row labels (`Category`/`Errors`/...
+    → `Категорія`/`Помилки`/`Попередж.`/`Інфо`/`Пропущ.`,
+    `Style`/`Security`/`Obfuscation`/`Total` → `Стиль`/`Безпека`/
+    `Обфускація`/`Усього`).
+  - CLAUDE.md status (`found ✓` → `знайдено ✓`, `missing ⚠️` →
+    `відсутній ⚠️`).
+  - Header field names (`Date` → `Дата`, `Plugin version` →
+    `Версія плагіна`, `Project` → `Проєкт`, `Saved` → `Збережено`).
+  - Run details labels (`rules applied` → `правил застосовано`,
+    `findings` → `знахідок`, `Total wall-clock` → `Загальний час`).
+  - Finding-body prose for all 9 rules + cross-cutting + synthesized
+    plugin findings (`Fix:` → `Як виправити:`, `See:` → `Див.:`).
+- Rule IDs and severity tokens (`[security/no-cleartext-traffic] ERROR`)
+  remain English — they are stable machine-readable identifiers.
+
+### Fixed
+
+- **gdoc.txt readability:** code-fenced blocks (triple-backtick) are
+  now stripped entirely from the Google-Docs-friendly output, with a
+  blank line before/after the unfenced body. Previously the literal
+  ` ``` ` markers were preserved, making the file unreadable when
+  pasted into Google Docs.
+- **Findings separator:** exactly one blank line between successive
+  finding entries in the gdoc.txt for skim-readability.
+
 ## [1.1.1] — 2026-04-30
 
 ### Changed

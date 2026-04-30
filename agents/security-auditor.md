@@ -109,8 +109,8 @@ If a category has zero findings, write `(none)` under it.
   ```
   [plugin/accepted-risks-rejected] WARNING
     .claude/CLAUDE.md
-    Rule <rule-id> was listed in accepted-risks but its `## Виключення` does not allow suppression.
-    Fix: remove the entry or address the underlying issue in source.
+    Правило <rule-id> вказано в accepted-risks, але його `## Виключення` не дозволяє suppression.
+    Як виправити: приберіть запис із accepted-risks або вирішіть проблему у вихідному коді.
   ```
 
 - If `rules/security/` contains no rule files (only `_schema.md`/`_template.md`):

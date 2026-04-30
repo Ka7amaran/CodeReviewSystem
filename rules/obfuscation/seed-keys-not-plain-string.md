@@ -65,9 +65,9 @@ bound, server-derived after attestation). At minimum for MVP, kept in
 ```
 [obfuscation/seed-keys-not-plain-string] WARNING
   <file>:<line>
-  Plain-string seed/key in compile-time constant: <name>.
-  Fix: move out of source. NDK or KeyStore for production; BuildConfig from gradle.properties as a starting point.
-  See: examples/good-proguard-rules.pro (commentary on "what -keep cannot save")
+  Plain-string seed/ключ у compile-time-константі: <name>.
+  Як виправити: винести з вихідного коду. NDK або KeyStore для production; BuildConfig із gradle.properties як стартова точка.
+  Див.: examples/good-proguard-rules.pro (коментар «що -keep не врятує»)
 ```
 
 ## Виключення

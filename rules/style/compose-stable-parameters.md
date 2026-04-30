@@ -86,9 +86,9 @@ fun ScoreList(
 ```
 [style/compose-stable-parameters] WARNING
   <file>:<line>
-  @Composable "<name>" takes unstable parameter <param>: <type>.
-  Fix (in order of preference, no dep added first): annotate the parameter type with `@Immutable` or wrap in a stable holder class; OR hoist function-reference parameters via `remember`; OR migrate the collection to `ImmutableList`/`PersistentList` (requires adding the `kotlinx.collections.immutable` dependency).
-  See: https://developer.android.com/jetpack/compose/performance/stability
+  @Composable "<name>" приймає нестабільний параметр <param>: <type>.
+  Як виправити (за порядком переваги, без додавання залежності — спочатку): анотуйте тип параметра `@Immutable` або обгорніть у stable holder-клас; АБО винесіть function-reference параметри через `remember`; АБО мігруйте колекцію на `ImmutableList`/`PersistentList` (потребує додавання залежності `kotlinx.collections.immutable`).
+  Див.: https://developer.android.com/jetpack/compose/performance/stability
 ```
 
 ## Виключення

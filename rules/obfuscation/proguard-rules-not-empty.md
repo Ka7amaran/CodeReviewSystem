@@ -61,9 +61,9 @@ classes). See `examples/good-proguard-rules.pro`.
 ```
 [obfuscation/proguard-rules-not-empty] ERROR
   app/proguard-rules.pro:1
-  isMinifyEnabled=true but proguard-rules.pro contains only template comments (<N> non-comment lines).
-  Fix: add -keep rules for at least: critical-classes from .claude/CLAUDE.md, Hilt entry points, kotlinx.serialization @Serializable classes.
-  See: examples/good-proguard-rules.pro
+  isMinifyEnabled=true, але proguard-rules.pro містить лише шаблонні коментарі (<N> рядків без коментарів).
+  Як виправити: додайте -keep правила хоча б для: critical-classes із .claude/CLAUDE.md, Hilt entry points, kotlinx.serialization @Serializable-класів.
+  Див.: examples/good-proguard-rules.pro
 ```
 
 ## Виключення

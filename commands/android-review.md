@@ -296,8 +296,8 @@ exact format (severity `error`):
 ```
 [cross/exported-component-not-keep] ERROR
   app/src/main/AndroidManifest.xml + app/proguard-rules.pro
-  <component-name> is exported AND not covered by any -keep rule. After R8 minification the class may be renamed; the intent-filter resolution will then fail at runtime, causing crashes when external apps try to launch the component.
-  Fix: add `-keep class <fqcn-of-component> { *; }` to app/proguard-rules.pro.
+  <component-name> експортовано І не покрито жодним -keep правилом. Після R8-мініфікації клас може бути перейменований; intent-filter resolution на рантаймі провалиться, спричиняючи краш при спробі зовнішніх додатків запустити компонент.
+  Як виправити: додайте `-keep class <fqcn-of-component> { *; }` у app/proguard-rules.pro.
 ```
 
 If the security sub-report contains no
@@ -335,76 +335,103 @@ errors is still `INCOMPLETE`).
   and bind it. Use this value in the `**Date:**` field. Do NOT
   recompute later.
 
-Produce the report with this exact skeleton (substitute placeholders):
+Produce the report in **Ukrainian** (UA-localized headers and labels).
+Rule IDs and severity tokens (`[security/no-cleartext-traffic] ERROR`)
+stay English — they are stable machine-readable identifiers. Only the
+section headers, finding-body prose, verdict labels, and table column
+names are translated. Sub-agent finding bodies are already Ukrainian
+(see each rule's `## Як доповідати` template).
+
+Use this exact skeleton (substitute placeholders):
 
 ```
-# Android Review report — <project-id>
+# Звіт з Android Review — <project-id>
 
-**Date:** <YYYY-MM-DD HH:MM>
-**Plugin version:** <semver-or-unknown>
-**Project:** <absolute path of cwd>
-**CLAUDE.md:** <found ✓ | missing ⚠️ | partially parseable ⚠️ (<sections>)>
-
----
-
-## Summary
-
-| Category    | Errors | Warnings | Info | Skipped |
-|-------------|--------|----------|------|---------|
-| Style       | <e>    | <w>      | <i>  | <s>     |
-| Security    | <e>    | <w>      | <i>  | <s>     |
-| Obfuscation | <e>    | <w>      | <i>  | <s>     |
-| **Total**   | <E>    | <W>      | <I>  | <S>     |
-
-**Verdict:** <READY | READY WITH WARNINGS | NOT READY | INCOMPLETE>
+**Дата:** <YYYY-MM-DD HH:MM>
+**Версія плагіна:** <semver-or-unknown>
+**Проєкт:** <absolute path of cwd>
+**CLAUDE.md:** <знайдено ✓ | відсутній ⚠️ | частково розпарсено ⚠️ (<sections>)>
 
 ---
 
-## 🔴 Errors (must fix)
+## Зведення
 
-(combined error-severity findings from all sub-reports + cross-cutting)
+| Категорія    | Помилки | Попередж. | Інфо | Пропущ. |
+|--------------|---------|-----------|------|---------|
+| Стиль        | <e>     | <w>       | <i>  | <s>     |
+| Безпека      | <e>     | <w>       | <i>  | <s>     |
+| Обфускація   | <e>     | <w>       | <i>  | <s>     |
+| **Усього**   | <E>     | <W>       | <I>  | <S>     |
 
----
-
-## 🟡 Warnings (recommended)
-
-(combined warning-severity findings)
-
----
-
-## ℹ️ Info
-
-(combined info-severity findings)
+**Вердикт:** <ГОТОВО | ГОТОВО З ПОПЕРЕДЖЕННЯМИ | НЕ ГОТОВО | НЕПОВНИЙ ПРОГІН>
 
 ---
 
-## 🔗 Cross-cutting findings
+## 🔴 Помилки (обов'язково виправити)
 
-(list of cross-cutting findings emitted in step 6, or `(none)`)
-
----
-
-## ⚠️ Agent failures
-
-(present ONLY if `agent_failures` is non-empty; one entry per failed
-agent: name, reason, and any partial output verbatim)
+(зведені error-severity знахідки з усіх sub-reports + cross-cutting)
 
 ---
 
-## Skipped rules
+## 🟡 Попередження (рекомендується)
 
-(combined Skipped rules from all three sub-reports, deduplicated)
+(зведені warning-severity знахідки)
 
 ---
 
-## Run details
+## ℹ️ Інформація
 
-- style-auditor:       <wall-clock or "n/a">, <rules-applied or "n/a"> rules applied, <findings-count> findings
-- security-auditor:    <wall-clock or "n/a">, <rules-applied or "n/a"> rules applied, <findings-count> findings
-- obfuscation-auditor: <wall-clock or "n/a">, <rules-applied or "n/a"> rules applied, <findings-count> findings
-- orchestrator merge:  <X> cross-cutting findings
-- Total wall-clock:    <wall-clock or "n/a">
+(зведені info-severity знахідки)
+
+---
+
+## 🔗 Перехресні знахідки
+
+(перелік cross-cutting знахідок зі step 6, або `(відсутні)`)
+
+---
+
+## ⚠️ Збої агентів
+
+(розділ присутній ТІЛЬКИ якщо `agent_failures` непорожній; один запис
+на агента: назва, причина і будь-який часткові вивід дослівно)
+
+---
+
+## Пропущені правила
+
+(зведені Skipped rules з усіх трьох sub-reports, дедупльовані)
+
+---
+
+## Деталі запуску
+
+- style-auditor:       <час або "n/a">, <правил або "n/a"> правил застосовано, <findings-count> знахідок
+- security-auditor:    <час або "n/a">, <правил або "n/a"> правил застосовано, <findings-count> знахідок
+- obfuscation-auditor: <час або "n/a">, <правил або "n/a"> правил застосовано, <findings-count> знахідок
+- orchestrator merge:  <X> перехресних знахідок
+- Загальний час:       <час або "n/a">
 ```
+
+**Verdict mapping** (use exact UA strings in the report):
+
+| English (internal logic)   | UA (rendered in report)        |
+|----------------------------|--------------------------------|
+| `READY`                    | `ГОТОВО`                       |
+| `READY WITH WARNINGS`      | `ГОТОВО З ПОПЕРЕДЖЕННЯМИ`      |
+| `NOT READY`                | `НЕ ГОТОВО`                    |
+| `INCOMPLETE`               | `НЕПОВНИЙ ПРОГІН`              |
+
+**CLAUDE.md status mapping**:
+
+| Internal       | UA                                  |
+|----------------|-------------------------------------|
+| `found ✓`      | `знайдено ✓`                        |
+| `missing ⚠️`   | `відсутній ⚠️`                      |
+| `partially parseable ⚠️` | `частково розпарсено ⚠️`  |
+
+If a category section has zero findings, write `(відсутні)` under that
+heading.
 
 Detailed rules for filling sections:
 
@@ -488,28 +515,42 @@ Sequence:
    Google-Docs-friendly transformation of the markdown.
 
 **Markdown → gdoc.txt conversion rules.** Apply in this order to the
-exact text produced in step 8:
+exact text produced in step 8. The output must be **clean, readable,
+Ukrainian-language plain text** that pastes well into Google Docs:
 
-1. **Headings.** Replace any line matching `^#{1,3} (.*)$` with the
+1. **Code-fenced blocks (triple-backtick).** Detect every block opening
+   with a line that is exactly ` ``` ` (or ` ```<lang> `) and closing
+   with a matching ` ``` ` line. **Strip BOTH the opening and closing
+   fence lines entirely** — do NOT keep them in the output. Keep the
+   block's body content as-is. Add one blank line BEFORE the body and
+   one blank line AFTER. This is the most important fix for
+   readability — without it, every finding looks like ``` followed by
+   plain text followed by ``` and the result is unusable in Google Docs.
+2. **Headings.** Replace any line matching `^#{1,3} (.*)$` with the
    captured text in UPPERCASE, followed by one blank line.
-   `## Summary` → `SUMMARY` then blank line.
-2. **Markdown tables.** Detect contiguous blocks where every line
+   `## Зведення` → `ЗВЕДЕННЯ` then blank line.
+3. **Markdown tables.** Detect contiguous blocks where every line
    starts with `|`. Drop the alignment row (`|---|---|...`). For each
    remaining row, strip the leading and trailing `|`, split on `|`,
    trim each cell, and join cells with a single tab character (`\t`).
    Output one row per line. Add a blank line after the table.
-3. **Markdown links.** Replace `[text](url)` with `text (url)`.
-4. **Inline backticks.** Leave the backticks as-is. Google Docs
-   renders them as plain text and that is acceptable.
-5. **Bullets.** `- ` markdown bullets pass through as `- `. `*` and
+4. **Markdown links.** Replace `[text](url)` with `text (url)`.
+5. **Inline backticks.** Leave the backticks as-is. Google Docs
+   renders them as plain text and that is acceptable for short
+   inline tokens.
+6. **Bullets.** `- ` markdown bullets pass through as `- `. `*` and
    `+` markdown bullets are converted to `- ` for consistency. Do not
    introduce `• ` or other Unicode bullet characters.
-6. **Horizontal rules.** Replace `---` lines with a single blank line.
-7. **Bold/italic markup** (`**bold**`, `*italic*`). Strip the `**`
+7. **Horizontal rules.** Replace `---` lines with a single blank line.
+8. **Bold/italic markup** (`**bold**`, `*italic*`). Strip the `**`
    and `*` markers; keep the inner text plain.
-8. **Severity emoji** (`🔴`, `🟡`, `ℹ️`, `✓`, `❌`, `⚠️`). KEEP as-is.
-9. **No HTML, no markdown markup other than bullets/numbers** in the
-   output. Resulting file is plain UTF-8 text.
+9. **Severity emoji** (`🔴`, `🟡`, `ℹ️`, `✓`, `❌`, `⚠️`). KEEP as-is.
+10. **Findings separator.** Between successive finding entries (lines
+    starting with `[<rule-id>]`), ensure exactly one blank line. This
+    makes the output skim-readable in Google Docs.
+11. **No HTML, no markdown markup other than bullets/numbers** in the
+    output. Resulting file is plain UTF-8 text, suitable for direct
+    paste into a Google Docs document.
 
 ### Step 10 — Terminal summary (NOT the full report)
 
@@ -519,51 +560,52 @@ terminal and forces the user to scroll through hundreds of lines of
 content that they will read in a viewer or paste into Google Docs.
 
 Print ONLY this compact summary as your final assistant message —
-nothing more, nothing less, in this exact structure:
+nothing more, nothing less, in **Ukrainian** with this exact structure:
 
 ```
 # Android Review — <project-id>
 
-**Date:** <YYYY-MM-DD HH:MM>  •  **Plugin:** <semver>  •  **CLAUDE.md:** <one of: found ✓ | missing ⚠️ | partially parseable ⚠️>
+**Дата:** <YYYY-MM-DD HH:MM>  •  **Плагін:** <semver>  •  **CLAUDE.md:** <знайдено ✓ | відсутній ⚠️ | частково розпарсено ⚠️>
 
-| Category    | Errors | Warnings | Info | Skipped |
-|-------------|--------|----------|------|---------|
-| Style       | <e>    | <w>      | <i>  | <s>     |
-| Security    | <e>    | <w>      | <i>  | <s>     |
-| Obfuscation | <e>    | <w>      | <i>  | <s>     |
-| **Total**   | <E>    | <W>      | <I>  | <S>     |
+| Категорія    | Помилки | Попередж. | Інфо | Пропущ. |
+|--------------|---------|-----------|------|---------|
+| Стиль        | <e>     | <w>       | <i>  | <s>     |
+| Безпека      | <e>     | <w>       | <i>  | <s>     |
+| Обфускація   | <e>     | <w>       | <i>  | <s>     |
+| **Усього**   | <E>     | <W>       | <I>  | <S>     |
 
-**Verdict:** <READY | READY WITH WARNINGS | NOT READY | INCOMPLETE>
+**Вердикт:** <ГОТОВО | ГОТОВО З ПОПЕРЕДЖЕННЯМИ | НЕ ГОТОВО | НЕПОВНИЙ ПРОГІН>
 
-**Cross-cutting findings:** <count or "none">
-**Agent failures:** <count or "none">
+**Перехресні знахідки:** <count or "відсутні">
+**Збої агентів:** <count or "відсутні">
 
-**Saved:**
-- `.claude/reports/<project-id>-android-review.md` (full report)
-- `.claude/reports/<project-id>-android-review.gdoc.txt` (Google-Docs-friendly)
+**Збережено:**
+- `.claude/reports/<project-id>-android-review.md` (повний звіт)
+- `.claude/reports/<project-id>-android-review.gdoc.txt` (Google-Docs-сумісний)
 ```
 
 Notes for filling the summary:
-- Counts come from step 7's aggregation.
-- `Cross-cutting findings: <count>` — write `none` if zero,
+- Counts come from step 7's aggregation. Use Ukrainian verdict labels
+  per the mapping table in step 8.
+- `Перехресні знахідки: <count>` — write `відсутні` if zero,
   otherwise the integer count.
-- `Agent failures: <count>` — write `none` if zero, otherwise the
+- `Збої агентів: <count>` — write `відсутні` if zero, otherwise the
   integer count followed by the list (one bullet per failed agent
   with a one-line reason). Example:
   ```
-  **Agent failures:** 1
-  - obfuscation-auditor — Task tool timeout after 60s. Partial output: ...
+  **Збої агентів:** 1
+  - obfuscation-auditor — таймаут Task tool після 60с. Частковий вивід: ...
   ```
 - Do NOT include the per-finding details (no `[<rule-id>] ERROR/WARNING/INFO`
-  blocks, no `Errors (must fix)`/`Warnings`/`Info` headers in the
+  blocks, no `Помилки` / `Попередження` / `Інфо` headers in the
   terminal). Those are in the saved files.
-- Do NOT include the `Run details` section in the terminal output —
+- Do NOT include the `Деталі запуску` section in the terminal output —
   it stays in the saved files.
 
-If the save step fails, replace the `**Saved:**` block with:
+If the save step fails, replace the `**Збережено:**` block with:
 
 ```
-**Saved:** ERROR — <reason>
+**Збережено:** ПОМИЛКА — <reason>
 ```
 
 Never retry the save. Never print the full report as a fallback.

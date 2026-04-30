@@ -62,9 +62,9 @@ If cleartext truly is needed for one domain, use:
 ```
 [security/no-cleartext-traffic] ERROR
   app/src/main/AndroidManifest.xml:<line>
-  android:usesCleartextTraffic="true" set on <application>.
-  Fix: remove the attribute, or scope cleartext to one domain via network_security_config.xml.
-  See: https://developer.android.com/training/articles/security-config
+  android:usesCleartextTraffic="true" встановлено на елементі <application>.
+  Як виправити: приберіть атрибут або обмежте cleartext одним доменом через network_security_config.xml.
+  Див.: https://developer.android.com/training/articles/security-config
 ```
 
 ## Виключення

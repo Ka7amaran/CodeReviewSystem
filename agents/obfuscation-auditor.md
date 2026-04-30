@@ -61,14 +61,14 @@ This is a bug in the orchestrator or slash-command wrapper.
      auto-detection — do NOT improvise placement):
 
      [obfuscation/auto-detected-critical-classes] INFO
-       .claude/CLAUDE.md (missing or empty `## critical-classes`)
-       Auto-detected potential critical classes (top 20):
+       .claude/CLAUDE.md (відсутній або порожній розділ `## critical-classes`)
+       Автоматично виявлені потенційні critical-classes (топ-20):
          <class1>
          <class2>
          ...
-       Fix: declare these (or your project's actual critical classes) in
-       `.claude/CLAUDE.md` `## critical-classes` to lock in coverage and
-       make subsequent runs deterministic.
+       Як виправити: задекларуйте ці (або реальні критичні класи проєкту) у
+       `.claude/CLAUDE.md` розділ `## critical-classes`, щоб закріпити покриття
+       та зробити наступні запуски детермінованими.
 
 4. For each surviving rule:
    a. Read the full rule body.
@@ -131,8 +131,8 @@ If a category has zero findings, write `(none)` under it.
   ```
   [plugin/accepted-risks-rejected] WARNING
     .claude/CLAUDE.md
-    Rule <rule-id> was listed in accepted-risks but its `## Виключення` does not allow suppression.
-    Fix: remove the entry or address the underlying issue in source.
+    Правило <rule-id> вказано в accepted-risks, але його `## Виключення` не дозволяє suppression.
+    Як виправити: приберіть запис із accepted-risks або вирішіть проблему у вихідному коді.
   ```
 
 - If `rules/obfuscation/` contains no rule files (only `_schema.md`/`_template.md`):

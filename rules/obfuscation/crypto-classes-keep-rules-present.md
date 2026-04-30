@@ -59,9 +59,9 @@ For `critical-classes` containing `com.example.app.core.crypto.**`:
 ```
 [obfuscation/crypto-classes-keep-rules-present] ERROR
   app/proguard-rules.pro:0
-  No -keep rule covers critical-classes pattern: <pattern>
-  Fix: add `-keep class <pattern> { *; }` (and consider `-keepclassmembers` if you only need members).
-  See: examples/good-proguard-rules.pro
+  Жодне -keep правило не покриває патерн critical-classes: <pattern>
+  Як виправити: додайте `-keep class <pattern> { *; }` (або розгляньте `-keepclassmembers`, якщо потрібні лише члени класу).
+  Див.: examples/good-proguard-rules.pro
 ```
 
 ## Виключення
