@@ -28,46 +28,25 @@ claude
 /android-review-style
 ```
 
-## Note on PLUGIN_ROOT
-
-This command injects `Plugin root: ${CLAUDE_PLUGIN_ROOT}` into the
-style-auditor's prompt. The agent aborts immediately if this variable
-is not set. If you see the error:
-
-```
-ERROR: plugin root was not supplied by the caller. Cannot locate rules.
-```
-
-it means `${CLAUDE_PLUGIN_ROOT}` was not expanded at dispatch time —
-check that Claude Code's plugin infrastructure set the variable before
-running this command.
-
 ---
 
 ## Dispatching the agent
 
-Step 1 — resolve the plugin root via Bash:
+The plugin root path (resolved at command render time):
 
-Run: `echo "$CLAUDE_PLUGIN_ROOT"`. Capture stdout as `<plugin-root>`.
+PLUGIN_ROOT_RESOLVED: !`echo "${CLAUDE_PLUGIN_ROOT:-/Users/mac/CodeReviewSystem}"`
 
-If the captured value is empty or the literal string `$CLAUDE_PLUGIN_ROOT`,
-abort and tell the user:
+Use the `Task` tool with `subagent_type: style-auditor` and the prompt
+body below. Substitute the value of `PLUGIN_ROOT_RESOLVED` from the line
+above into the `Plugin root:` field — do NOT pass any literal
+`${...}` placeholder, and do NOT pass an empty value.
 
-> The Claude Code plugin runtime did not expose `CLAUDE_PLUGIN_ROOT`.
-> The android-review plugin cannot run without it. Please report this
-> to the plugin maintainer.
-
-Step 2 — dispatch the **style-auditor** sub-agent:
-
-Use the `Task` tool with `subagent_type: style-auditor` and this prompt body
-(substitute `<plugin-root>` with the actual value captured in step 1
-— do NOT pass the literal string `${CLAUDE_PLUGIN_ROOT}`):
+Prompt to send via the Task tool:
 
 ```
-Plugin root: <plugin-root>
+Plugin root: <value of PLUGIN_ROOT_RESOLVED above>
 
 Run a style audit on the Android project at the current working directory. Follow your system prompt's procedure exactly. Return the markdown report only.
 ```
 
-Step 3 — after the agent returns its markdown report, print it
-verbatim to the user.
+After the agent returns its markdown report, print it verbatim to the user.

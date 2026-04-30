@@ -46,46 +46,26 @@ procedure restricts those writes to `.claude/reports/` — this is
 the orchestrator writing outside `.claude/reports/`, please report
 it as a bug.
 
-## Note on PLUGIN_ROOT
-
-This command injects `PLUGIN_ROOT: ${CLAUDE_PLUGIN_ROOT}` into the
-orchestrator's prompt. The orchestrator aborts immediately if this
-variable is not set. If you see the error:
-
-```
-ERROR: PLUGIN_ROOT was not supplied by the slash-command wrapper.
-```
-
-it means `${CLAUDE_PLUGIN_ROOT}` was not expanded at dispatch time —
-check that Claude Code's plugin infrastructure set the variable before
-running this command.
-
 ---
 
 ## Dispatching the agent
 
-Step 1 — resolve the plugin root via Bash:
+The plugin root path (resolved at command render time):
 
-Run: `echo "$CLAUDE_PLUGIN_ROOT"`. Capture stdout as `<plugin-root>`.
+PLUGIN_ROOT_RESOLVED: !`echo "${CLAUDE_PLUGIN_ROOT:-/Users/mac/CodeReviewSystem}"`
 
-If the captured value is empty or the literal string `$CLAUDE_PLUGIN_ROOT`,
-abort and tell the user:
+Use the `Task` tool with `subagent_type: orchestrator` and the prompt body
+below. Substitute the value of `PLUGIN_ROOT_RESOLVED` from the line above
+into the `PLUGIN_ROOT:` field of the prompt — do NOT pass any literal
+`${...}` placeholder, and do NOT pass an empty value.
 
-> The Claude Code plugin runtime did not expose `CLAUDE_PLUGIN_ROOT`.
-> The android-review plugin cannot run without it. Please report this
-> to the plugin maintainer.
-
-Step 2 — dispatch the **orchestrator** sub-agent:
-
-Use the `Task` tool with `subagent_type: orchestrator` and this prompt body
-(substitute `<plugin-root>` with the actual value captured in step 1
-— do NOT pass the literal string `${CLAUDE_PLUGIN_ROOT}`):
+Prompt to send via the Task tool:
 
 ```
-PLUGIN_ROOT: <plugin-root>
+PLUGIN_ROOT: <value of PLUGIN_ROOT_RESOLVED above>
 
 Run a complete Android code review on the project at the current working directory. Follow your system prompt's procedure exactly.
 ```
 
-Step 3 — after the agent returns its markdown report, print it
-verbatim to the user.
+After the orchestrator returns its markdown report, print it verbatim
+to the user.
