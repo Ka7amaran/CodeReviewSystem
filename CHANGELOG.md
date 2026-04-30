@@ -4,6 +4,26 @@ All notable changes to the `android-review` plugin will be documented here.
 Format follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/);
 versioning follows [Semver](https://semver.org/).
 
+## [1.1.0] — 2026-04-30
+
+### Added
+
+- New slash command `/android-review:android-review-init` —
+  initializes `.claude/CLAUDE.md` scaffold for the current Android
+  project. Auto-fills `project-id`, `applicationId`, `namespace`,
+  `minSdk`, `targetSdk` from `app/build.gradle(.kts)`. Leaves
+  placeholder TODOs for `critical-classes` and `sensitive-files` for
+  the user to fill in. Also appends `.claude/reports/` to the
+  project's `.gitignore`.
+- Refuses to overwrite if `.claude/CLAUDE.md` already exists.
+- README: full Quickstart section walking through init → fill TODOs →
+  full review.
+
+### Changed
+
+- README: command list now uses fully-qualified names
+  (`/android-review:android-review` etc.).
+
 ## [1.0.1] — 2026-04-30
 
 ### Fixed
