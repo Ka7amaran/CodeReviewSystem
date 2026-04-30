@@ -482,23 +482,62 @@ exact text produced in step 8:
 9. **No HTML, no markdown markup other than bullets/numbers** in the
    output. Resulting file is plain UTF-8 text.
 
-### Step 10 — Print and footer
+### Step 10 — Terminal summary (NOT the full report)
 
-After saving both files successfully, print the markdown report from
-step 8 verbatim to the terminal (your final assistant message),
-followed by exactly:
+Do NOT print the full markdown report to the terminal. The full report
+is already saved to `.claude/reports/`; printing it again pollutes the
+terminal and forces the user to scroll through hundreds of lines of
+content that they will read in a viewer or paste into Google Docs.
+
+Print ONLY this compact summary as your final assistant message —
+nothing more, nothing less, in this exact structure:
 
 ```
+# Android Review — <project-id>
 
-Saved:
-  .claude/reports/<project-id>-android-review.md
-  .claude/reports/<project-id>-android-review.gdoc.txt
+**Date:** <YYYY-MM-DD HH:MM>  •  **Plugin:** <semver>  •  **CLAUDE.md:** <one of: found ✓ | missing ⚠️ | partially parseable ⚠️>
+
+| Category    | Errors | Warnings | Info | Skipped |
+|-------------|--------|----------|------|---------|
+| Style       | <e>    | <w>      | <i>  | <s>     |
+| Security    | <e>    | <w>      | <i>  | <s>     |
+| Obfuscation | <e>    | <w>      | <i>  | <s>     |
+| **Total**   | <E>    | <W>      | <I>  | <S>     |
+
+**Verdict:** <READY | READY WITH WARNINGS | NOT READY | INCOMPLETE>
+
+**Cross-cutting findings:** <count or "none">
+**Agent failures:** <count or "none">
+
+**Saved:**
+- `.claude/reports/<project-id>-android-review.md` (full report)
+- `.claude/reports/<project-id>-android-review.gdoc.txt` (Google-Docs-friendly)
 ```
 
-(Note the leading blank line and two-space indentation.)
+Notes for filling the summary:
+- Counts come from step 7's aggregation.
+- `Cross-cutting findings: <count>` — write `none` if zero,
+  otherwise the integer count.
+- `Agent failures: <count>` — write `none` if zero, otherwise the
+  integer count followed by the list (one bullet per failed agent
+  with a one-line reason). Example:
+  ```
+  **Agent failures:** 1
+  - obfuscation-auditor — Task tool timeout after 60s. Partial output: ...
+  ```
+- Do NOT include the per-finding details (no `[<rule-id>] ERROR/WARNING/INFO`
+  blocks, no `Errors (must fix)`/`Warnings`/`Info` headers in the
+  terminal). Those are in the saved files.
+- Do NOT include the `Run details` section in the terminal output —
+  it stays in the saved files.
 
-If the save step fails, still print the markdown report and append
-`Saved: ERROR — <reason>` instead of the success footer. Never retry.
+If the save step fails, replace the `**Saved:**` block with:
+
+```
+**Saved:** ERROR — <reason>
+```
+
+Never retry the save. Never print the full report as a fallback.
 
 ---
 
