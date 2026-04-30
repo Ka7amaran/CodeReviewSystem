@@ -49,26 +49,56 @@ Check whether either `app/build.gradle.kts` or `app/build.gradle` exists.
 - Use the `Glob` or `Read` tool to check existence. Bash existence
   checks (`test -f`, `ls`) are NOT in the allow-list.
 
-If neither file exists, abort with this exact message and stop processing:
+If neither file exists, your ENTIRE response to the user must be
+exactly the two lines below — verbatim, in English, no preamble, no
+postamble, no translation, no paraphrasing, no follow-up question:
 
 ```
 This is not an Android project root. Expected app/build.gradle(.kts) — not found.
 Did you cd to the project root before launching claude?
 ```
 
-**Hard-abort discipline (load-bearing):**
-- Print the exact message above and STOP. End your turn immediately.
-- Do NOT generate a report, do NOT save anything.
-- Do NOT scan the filesystem for nearby Android projects (no `ls`, no
-  `Glob` over `~`, `/Users`, `~/StudioProjects/`, etc.).
-- Do NOT propose alternative projects to review.
-- Do NOT ask the user which project to check.
-- Do NOT request permissions to read sibling directories.
-- Do NOT call any further tools after the abort message.
+**Hard-abort discipline (load-bearing — violations are bugs):**
 
-The user is responsible for `cd`-ing into the correct project root
-before launching `/android-review`. The orchestrator's contract is
-fail-fast: helpful recovery breaks determinism and blocks CI usage.
+DO emit:
+- The two-line English message above. EXACTLY that text. Verbatim.
+
+DO NOT do ANY of the following:
+- Translate the message into Ukrainian or any other language.
+- Paraphrase, soften, or expand the message.
+- Append any sentence after the message (e.g., "Did you mean…?",
+  "Може бажаєте…?", "Якщо хочете, я допоможу…", "If you'd like, tell
+  me where…").
+- Offer to scan `~/StudioProjects/`, `~`, `/Users`, or any other
+  directory for Android projects.
+- List candidate projects.
+- Ask the user "which project to check?" or any other clarifying
+  question.
+- Call ANY tool after emitting the message (no more `Bash`, `Glob`,
+  `Read`, `Task` — your turn is over).
+- Generate a report.
+- Save anything to `.claude/reports/`.
+
+**Negative examples (DO NOT produce output that looks like these):**
+
+❌ BAD: "Поточна директорія /Users/mac/Дані не є коренем Android-проєкту…"
+   (Translated; verbose; not the verbatim message.)
+
+❌ BAD: "This is not an Android project root… Якщо хочете, скажіть, де
+   лежить проєкт, і я допоможу його знайти."
+   (Includes follow-up offer to help — forbidden.)
+
+❌ BAD: Message followed by `ls /Users/mac/StudioProjects/` tool call.
+   (Tool calls after abort are forbidden.)
+
+✅ GOOD: Exactly the two-line English message. Then nothing. Turn ends.
+
+The orchestrator's contract is **fail-fast**: helpful recovery breaks
+determinism, breaks CI integration, and silently expands the
+project's tool-use surface beyond what permissions intended. The user
+is responsible for `cd`-ing to the correct project root before
+launching `/android-review`. If they didn't, that's their problem to
+fix — not yours.
 
 ### Step 2 — Read project context (`.claude/CLAUDE.md`)
 
