@@ -41,9 +41,9 @@ claude
 
 ## Dispatching the agent
 
-The plugin root path (resolved at command render time):
+The plugin root path (hardcoded for local install; revisit when published to GitHub):
 
-PLUGIN_ROOT_RESOLVED: !`echo "${CLAUDE_PLUGIN_ROOT:-/Users/mac/CodeReviewSystem}"`
+PLUGIN_ROOT_RESOLVED: /Users/mac/CodeReviewSystem
 
 Use the `Task` tool with `subagent_type: obfuscation-auditor` and the
 prompt body below. Substitute the value of `PLUGIN_ROOT_RESOLVED` from
