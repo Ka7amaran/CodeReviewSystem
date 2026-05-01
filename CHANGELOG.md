@@ -4,6 +4,59 @@ All notable changes to the `android-review` plugin will be documented here.
 Format follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/);
 versioning follows [Semver](https://semver.org/).
 
+## [1.4.0] — 2026-05-01
+
+### Added (5 new rules from team checklist)
+
+- `security/manifest-cleanup-third-party-permissions` (warning) —
+  flags missing `tools:node="remove"` for the standard list of
+  vendor permissions that bleed in via SDK manifest-merge
+  (BIND_GET_INSTALL_REFERRER_SERVICE, WAKE_LOCK,
+  RECEIVE_BOOT_COMPLETED, FOREGROUND_SERVICE, vendor badge-permissions
+  for Samsung/HTC/Sony/Huawei/Oppo/Apex/Solo/Everything etc).
+- `security/release-logs-disabled` (warning) — flags `Log.d/v/i` and
+  `println(...)` not guarded by `BuildConfig.DEBUG` and not stripped
+  via `-assumenosideeffects` ProGuard rule. Body in saved files
+  presents both fix options (code-level guard or ProGuard strip).
+- `obfuscation/minify-enabled-in-release` (warning) — flags release
+  buildType without `isMinifyEnabled = true`.
+- `obfuscation/shrink-resources-enabled` (info) — flags release
+  buildType without `isShrinkResources = true` (also flags if it's
+  set but `isMinifyEnabled` is false).
+- `style/required-libraries-present` (info) — flags missing OneSignal,
+  Install Referrer, or Play Services Ads Identifier in
+  `libs.versions.toml`/`build.gradle.kts`. Suggests `accepted-risks`
+  declaration for "no-attribution" branch builds.
+- `obfuscation/encrypted-sharedpreferences-for-uuid` (info) — flags
+  `SharedPreferences` usage for UUID/token storage that's not
+  `EncryptedSharedPreferences`. Suggests
+  `androidx.security:security-crypto` migration.
+
+### Changed
+
+- All 3 audit sub-agents now have a mandatory **Output language
+  constraint** that forces every human-readable text in findings,
+  skipped reasons, and accepted-risks annotations to be Ukrainian.
+  Rule IDs, severity tokens, code identifiers, and structural section
+  headers stay English (machine-readable). This addresses
+  inconsistent localization in v1.2.0–v1.3.0 reports.
+
+### Notes for further iteration
+
+The team's full Code Review checklist contains additional items not
+yet covered by static rules:
+- WebView config completeness (JavaScript, DOM Storage, third-party
+  cookies, file upload, fullscreen video).
+- Custom User-Agent for HTTP clients (not default ktor/okhttp).
+- WebP for `res/drawable*`, adaptive icon manifest.
+- Splash UUID + OneSignal init + InstallReferrer attribution flow.
+- Privacy Policy → game redirect navigation strategy verification.
+- Git branch strategy (with-attribution vs without-attribution).
+
+These will be added in subsequent releases as concrete static rules
+where statically checkable, and as a manual checklist where they
+require runtime testing (navigation flow, payment flow, file upload).
+
 ## [1.3.0] — 2026-05-01
 
 ### Added

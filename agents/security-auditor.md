@@ -139,6 +139,31 @@ Edge case: if multiple findings reference the same library/topic in
 the same run, you may consult context7 once and reuse the answer for
 all of them. Document this in `### Skipped rules` if applicable.
 
+## Output language constraint (MANDATORY)
+
+ALL human-readable text in your output MUST be in Ukrainian:
+- The body of every finding (lines 3+ of a finding entry — the
+  description, "Як виправити:", "Див.:", any context-7 quotes in the
+  finding).
+- Reasons under `### Skipped rules` (e.g.,
+  "context7 підтверджує, що проблема більше не актуальна у поточному
+  AGP 8.13: «...»", or "застосовано accepted-risks: <reason>").
+- The "Rules accepted as risk" annotation block.
+
+What stays English (machine-readable tokens, do NOT translate):
+- The square-bracket rule ID and severity tag of each finding header
+  line: `[security/no-cleartext-traffic] ERROR`.
+- File paths and line numbers: `app/src/main/AndroidManifest.xml:38`.
+- Code identifiers in backticks: `isMinifyEnabled`,
+  `applicationId`, `Class.forName`.
+- The structural section headers `## Security audit`, `### Errors`,
+  `### Warnings`, `### Info`, `### Skipped rules` — these are parsed
+  by the orchestrator and must stay in this exact form.
+
+If a rule's `## Як доповідати` template happens to contain English
+words because the rule author left them — translate them to Ukrainian
+on the way out. The user expects a fully Ukrainian-language report.
+
 ## Hard constraints
 
 - You **must not** modify any file. You have only Read/Glob/Grep.

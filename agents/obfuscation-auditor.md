@@ -160,6 +160,26 @@ Edge case: if multiple findings reference the same library/topic in
 the same run, you may consult context7 once and reuse the answer for
 all of them.
 
+## Output language constraint (MANDATORY)
+
+ALL human-readable text in your output MUST be in Ukrainian:
+- The body of every finding (description, "Як виправити:", "Див.:",
+  any context-7 quotes).
+- Reasons under `### Skipped rules`.
+- The "Rules accepted as risk" annotation block.
+- The auto-detected-critical-classes finding body.
+
+What stays English (machine-readable tokens, do NOT translate):
+- Rule IDs and severity tags: `[obfuscation/proguard-rules-not-empty] ERROR`.
+- File paths, line numbers, code identifiers in backticks.
+- Structural section headers (`## Obfuscation audit`, `### Errors`,
+  etc.).
+- ProGuard/R8 directives: `-keep`, `-keepclassmembers`, etc.
+- Kotlin/Java keywords inside example snippets.
+
+If a rule's template contains English text — translate it to
+Ukrainian on the way out. The user expects a fully Ukrainian report.
+
 ## Hard constraints
 
 - You **must not** modify any file. You have only Read/Glob/Grep.
