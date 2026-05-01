@@ -4,6 +4,51 @@ All notable changes to the `android-review` plugin will be documented here.
 Format follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/);
 versioning follows [Semver](https://semver.org/).
 
+## [1.5.0] — 2026-05-01
+
+### Added (7 new rules from team checklist — batch B)
+
+- `style/webview-config-completeness` (warning) — checks WebView
+  setup for JavaScript, DOM/Database storage, third-party cookies,
+  `WebChromeClient.onShowFileChooser`/`onPermissionRequest`/
+  `onShowCustomView`, `setDownloadListener`, and
+  `shouldOverrideUrlLoading`. One finding per missing config per
+  WebView instance.
+- `security/custom-user-agent-not-default` (warning) — flags Ktor /
+  OkHttp / HttpURLConnection clients without an explicit User-Agent
+  override. Recommends `System.getProperty("http.agent") ?: "Android"`.
+- `style/webp-images` (info) — flags PNG/JPG drawables > 50 KB that
+  could be converted to WebP for APK-size reduction.
+- `style/adaptive-icon` (info) — flags missing
+  `mipmap-anydpi-v26/ic_launcher.xml` (adaptive icon) and missing
+  `<monochrome>` layer (themed icon for Android 13+).
+- `security/splash-attribution-flow` (warning) — checks splash flow
+  for the team's standard 7-step attribution sequence: UUID lookup
+  → UUID generation → OneSignal init → OneSignal login →
+  InstallReferrer → AdvertisingId → POST to backend. One finding
+  per missing step.
+- `obfuscation/strings-xml-no-sensitive` (warning) — scans
+  `res/values/strings.xml` for sensitive patterns (URLs, OneSignal
+  app id, JWT, base64 keys). Suggests BuildConfig migration.
+- `style/orientation-config` (warning) — checks Activity
+  `android:screenOrientation` consistency with the team's policy:
+  fixed orientation for game Activities, free orientation for
+  WebView/policy/auth Activities.
+
+### Notes
+
+The plugin now ships **17 rules** total (5 style + 5 security + 7
+obfuscation, where `proguard-rules-not-empty` was removed in v1.2.2
+and `strings-xml-no-sensitive` is technically obfuscation-flavored
+but security-adjacent).
+
+Items from the team's checklist that remain manual (no static rule
+yet, recommended for runtime/QA verification):
+- Privacy Policy → game redirect (4 navigation methods to test).
+- Git branch strategy (with-attribution vs without-attribution).
+- WebView OAuth flows for Google/Facebook/Apple (require live test).
+- WebView payment flows (require live test).
+
 ## [1.4.0] — 2026-05-01
 
 ### Added (5 new rules from team checklist)
