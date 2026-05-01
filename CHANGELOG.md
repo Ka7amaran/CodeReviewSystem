@@ -4,6 +4,20 @@ All notable changes to the `android-review` plugin will be documented here.
 Format follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/);
 versioning follows [Semver](https://semver.org/).
 
+## [1.2.2] — 2026-05-01
+
+### Removed
+
+- Rule `obfuscation/proguard-rules-not-empty`. The rule fired ERROR
+  whenever `isMinifyEnabled=true` and `app/proguard-rules.pro` had no
+  custom keep rules. In modern Android stacks (AGP 8.x, R8 8.x with
+  Hilt/kotlinx.serialization/Compose/Ktor), the libraries' own
+  consumer-rules are picked up automatically — an empty user
+  proguard-rules.pro is genuinely fine for typical projects.
+  Real coverage gaps for projects that DO use reflection are still
+  caught by `obfuscation/crypto-classes-keep-rules-present` (which
+  fires only when `critical-classes` is declared and not covered).
+
 ## [1.2.1] — 2026-05-01
 
 ### Changed
