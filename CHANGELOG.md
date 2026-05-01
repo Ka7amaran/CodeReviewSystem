@@ -4,6 +4,35 @@ All notable changes to the `android-review` plugin will be documented here.
 Format follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/);
 versioning follows [Semver](https://semver.org/).
 
+## [1.3.0] — 2026-05-01
+
+### Added
+
+- **context7 MCP integration in all 3 audit sub-agents** (style,
+  security, obfuscation). Each agent now has a mandatory
+  "Knowledge-currency check" step: before emitting any finding tied
+  to Android-ecosystem behavior, the agent consults the `context7`
+  MCP server (via `query-docs` and `resolve-library-id` tools) to
+  verify the rule's claim is still accurate against the latest
+  stable versions of the relevant library/framework (AGP, R8,
+  Hilt, kotlinx.serialization, Compose, etc).
+- If context7 confirms the rule is outdated, the agent skips the
+  finding and lists the rule under `### Skipped rules` with the
+  context7 quote as reason.
+- If context7 is inconclusive/unavailable, the agent fails open:
+  emits the finding as written, but tags it `(context7: inconclusive)`.
+
+This addresses the broader concern that the rule library may drift
+from ecosystem reality. Reports now reflect the current state of
+Android/Kotlin/library behavior, not the state when the rule was
+first authored.
+
+### Requirements
+
+The `context7` MCP server must be installed in the user's Claude
+Code environment (it ships with the official `claude-plugins-official`
+plugin set). If absent, agents fail open.
+
 ## [1.2.2] — 2026-05-01
 
 ### Removed
