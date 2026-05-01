@@ -1,6 +1,6 @@
 {
   "name": "android-review",
-  "version": "1.2.0",
+  "version": "1.2.1",
   "description": "Automated code review for Android projects. Orchestrator + 3 parallel sub-agents reading declarative markdown rules.",
   "author": {
     "name": "Roman"

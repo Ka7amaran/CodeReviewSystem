@@ -57,10 +57,18 @@ targetSdk: 36
 |--------------------|--------------------------------------------------------------------|-----------|
 | `project-id`       | Human-readable id used in report titles and filenames.             | Yes       |
 | `expected-values`  | Optional baseline validation of `applicationId`/`namespace`/SDK.   | No        |
-| `critical-classes` | Glob patterns that must be covered by `-keep` rules.               | Recommended |
-| `sensitive-files`  | Glob patterns where the security agent searches harder.            | Recommended |
+| `critical-classes` | Glob patterns that must be covered by `-keep` rules. Modern stacks (Hilt + kotlinx.serialization + Compose + Ktor) usually don't need this — consumer-rules from each library cover it automatically. | Optional  |
+| `sensitive-files`  | Glob patterns where the security agent searches harder. Empty = agent scans every Kotlin/Java file. | Optional  |
 | `accepted-risks`   | `<rule-id>: <reason>` — silences a rule if its "Виключення" allows.| Optional  |
 | `rule-overrides`   | Reserved for future R3 per-project rule parameter overrides (unparsed in M1). | Leave empty |
+
+**Most projects can leave both `critical-classes` and `sensitive-files`
+empty.** The plugin handles missing/empty gracefully — the obfuscation
+auditor falls back to heuristic auto-detection, and the security
+auditor scans all source files. Fill these sections only when you know
+your project genuinely needs them (see the TODO comments in the
+generated CLAUDE.md scaffold for concrete reflection-use-site
+examples).
 
 ## What happens if `.claude/CLAUDE.md` is missing
 

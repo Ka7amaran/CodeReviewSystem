@@ -125,18 +125,36 @@ targetSdk: <FROM_GRADLE_OR_EMPTY>
 
 ## critical-classes
 
-# TODO: list packages whose classes are accessed reflectively at runtime
-# (decryption layers, JSON DTOs deserialized via reflection, Hilt entry
-# points, kotlinx.serialization @Serializable classes). These MUST be
-# covered by -keep rules in app/proguard-rules.pro.
+# OPTIONAL. Most modern Android projects (Hilt + kotlinx.serialization
+# + Compose + Ktor) DON'T need to fill this in — those libraries ship
+# their own consumer-rules in the AAR and R8 picks them up automatically.
+# Your release build will Just Work with an empty proguard-rules.pro
+# unless your own code does runtime reflection.
+#
+# Fill this section ONLY if your code uses any of:
+#   - Class.forName("com.example.app.SomeClass")
+#   - KClass.simpleName as a map key or registry key
+#   - Custom JSON-serializer that looks up classes by string name
+#   - A library that requires manual -keep rules and doesn't ship
+#     consumer-rules
+#
+# If you do need it: list package globs whose classes must NOT be
+# renamed by R8. The plugin will check that app/proguard-rules.pro
+# covers them.
 # Example:
 # - <com.example.app.crypto.**>
 # - <com.example.app.data.model.**>
 
 ## sensitive-files
 
-# TODO: list file globs where the security agent should look harder for
-# hardcoded secrets, junk-char obfuscation, plain-string seeds.
+# OPTIONAL. The security agent already scans every Kotlin/Java file in
+# the project for hardcoded secrets, junk-char obfuscation, and plain-
+# string seeds. This section just narrows the focus to specific globs
+# where you KNOW secrets live — useful on large codebases to reduce
+# noise.
+#
+# Leave empty unless your project has dedicated crypto/auth modules
+# whose contents the agent should inspect more thoroughly.
 # Example:
 # - app/src/main/java/<your-package>/crypto/**
 # - app/src/main/java/<your-package>/data/api/**
