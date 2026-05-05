@@ -4,6 +4,64 @@ All notable changes to the `android-review` plugin will be documented here.
 Format follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/);
 versioning follows [Semver](https://semver.org/).
 
+## [2.0.0] — 2026-05-05
+
+### BREAKING — full philosophy rewrite
+
+v2.0 is a ground-up rewrite around a **functional contract** instead
+of structural matching. v1.x rules (style/security/obfuscation) are
+deleted in full. Reports become 3-severity (Критичні / Підозрілі /
+Спостереження) with a "Перевірені інваріанти" pass list, not the v1.x
+4-section by-category split.
+
+### Architecture changes
+
+- Single sub-agent `functional-validator` replaces 3 v1.x sub-agents
+  (style/security/obfuscation auditors).
+- 2 slash commands (`/android-review`, `/android-review-init`)
+  replace the 5 v1.x commands. Specialized `-style`/`-security`/
+  `-obfuscation` commands removed.
+- 8 functional rules across 3 new categories (`flow/`, `webview/`,
+  `crypto/`) replace 21 v1.x structural rules.
+- Output: only `.md` (the `.gdoc.txt` second format is removed; paste
+  `.md` directly into Google Docs if needed).
+
+### Removed (entire v1.x rule set)
+
+- All 8 `style/*` rules.
+- All 7 `security/*` rules.
+- All 6 `obfuscation/*` rules.
+- `cross/exported-component-not-keep` (cross-cutting check obsolete in
+  functional model).
+
+### Added (v2.0 rule catalog)
+
+- `flow/initial-startup-checklist` — all 6 startup actions present.
+- `flow/uuid-persistence` — UUID survives between sessions.
+- `flow/organic-routing-critical` — organic users still open WebView
+  (THE most important v2.0 invariant).
+- `flow/non-organic-post-required` — non-organic users POST to backend.
+- `flow/redirect-method-correctness` — only the declared method is
+  verified (one of 7.1 / 7.2 / 7.3).
+- `webview/config-completeness` — canonical preset of WebView settings.
+- `webview/activity-fullscreen-orientation` — Activity orientation,
+  fullscreen, top-bar visibility.
+- `crypto/post-data-encoding-pattern` — POST data goes through a
+  consistent encoding (no path pinning).
+
+### CLAUDE.md scaffold
+
+- 5 fields (`project-type`, `landing-mechanism`, `redirect-method`,
+  `backend-domain`, `accepted-deviations`) replace the 6 v1.x fields.
+- 3 of 5 are auto-detected by `/android-review-init`.
+- `accepted-risks` renamed to `accepted-deviations` (functional vs
+  risk-based framing).
+
+### Migration
+
+v1.x stays accessible via `git checkout v1.5.0` — no automatic
+migration path. v2.0 is a clean cutover.
+
 ## [1.5.0] — 2026-05-01
 
 ### Added (7 new rules from team checklist — batch B)
