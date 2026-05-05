@@ -1,46 +1,82 @@
-# Rule file schema
+# Rule file schema (v2.0 — functional)
 
 Every rule lives in `rules/<category>/<rule-id-slug>.md` where `category`
-is one of `style`, `security`, `obfuscation`. The filename slug must
-match the `id` field after the `/`.
+is one of `flow`, `webview`, `crypto`. The filename slug must match the
+`id` field after the `/`.
 
-## Frontmatter (5 mandatory fields)
+## Frontmatter (5 mandatory + 1 optional fields)
 
 ```yaml
 ---
-id: <category>/<slug>            # e.g. security/no-cleartext-traffic
-severity: error | warning | info  # error = blocks release; warning = must review; info = observation
-category: style | security | obfuscation   # duplicates first id segment
-applies-to:                       # glob patterns; agent skips body if no match
-  - <pattern>
-  - <pattern>
-since: "<semver>"                 # plugin version that introduced the rule
+id: <category>/<slug>                  # e.g. flow/organic-routing-critical
+severity: critical | suspicious | observation   # see § Severity below
+category: flow | webview | crypto      # duplicates first id segment
+applies-to:                            # OPTIONAL hint for the agent's attention
+  - <pattern>                          # NOT a hard pre-filter — agent does dataflow tracing
+since: "<semver>"                      # plugin version that introduced the rule
+requires-project-type: with-attribution | no-attribution   # OPTIONAL; if set, rule auto-skips on non-matching projects
 ---
 ```
 
 ## Body (6 mandatory sections, each `## Heading`)
 
-1. **`## Чому це важливо`** — 2–6 sentences explaining business/security
-   context. Without this section the developer does not understand why
-   they're being told this. Reduces review fatigue.
-2. **`## Що перевірити`** — numbered checklist for the agent. This is
-   the "program" of the rule.
-3. **`## Як це виглядає у поганому проекті`** — minimal failing example.
-4. **`## Як це має виглядати`** — minimal correct example.
-5. **`## Як доповідати`** — exact report-line template. Critical for
-   consistent reports across runs.
-6. **`## Виключення`** — when (if ever) the rule may be suppressed via
-   `accepted-risks` in a project's `CLAUDE.md`. Use the literal text
-   `Жодних` (or `None`) if the rule cannot be suppressed.
+1. **`## Інваріант`** — what behavior must hold at runtime. The
+   contract the rule defends. 1-3 sentences.
+2. **`## Як перевірити`** — dataflow-trace recipe for the agent.
+   How to verify the invariant by reading code (which symbols to
+   look for, which call chains to follow, which file types to read).
+   This is NOT a grep recipe — it's a reasoning recipe.
+3. **`## Як виглядає поломка`** — minimal example of the broken
+   behavior (Kotlin/XML/JSON snippet).
+4. **`## Як виглядає правильно`** — minimal example of correct
+   behavior.
+5. **`## Як доповідати`** — exact finding template (Ukrainian body
+   for human-readable text; rule-id and severity stay English as
+   machine-readable tokens).
+6. **`## Виключення`** — when the user can silence the rule via
+   `accepted-deviations` in `.claude/CLAUDE.md`. Use the literal
+   text `Жодних` if the rule cannot be silenced (reserved for
+   `flow/organic-routing-critical`).
 
-## How sub-agents apply rules (reference)
+## Severity scheme
 
-1. Read the frontmatter of every file in `rules/<own-category>/`.
-2. Filter by `applies-to`: skip rules whose patterns don't match any
-   project file.
-3. For survivors, read the body.
-4. Read `accepted-risks` from `.claude/CLAUDE.md` of the project; for
-   each suppressed rule, check whether its `## Виключення` allows it.
-5. Apply `## Що перевірити` to the project, formulate findings using
-   `## Як доповідати`.
-6. Group findings by severity in the final markdown report.
+- **`critical`** — broken invariant causes runtime issue or violates
+  the user-defined contract; report verdict becomes `🔴 НЕ ГОТОВО`.
+- **`suspicious`** — non-blocking heuristic, worth a glance.
+- **`observation`** — informational, never blocks.
+
+## Categories
+
+- **`flow/`** — application-startup and runtime behavior (UUID,
+  push init, attribution, routing, redirect method).
+- **`webview/`** — WebView/CustomTabs configuration and host
+  Activity requirements.
+- **`crypto/`** — POST-data encoding pattern (file paths NOT
+  pinned; only the pattern).
+
+Style/security/obfuscation categories from v1.x are deleted —
+they don't map to functional flows.
+
+## How the agent applies rules
+
+1. Discover all `*.md` files in `rules/<category>/` (skip files
+   starting with `_`).
+2. Read project's `.claude/CLAUDE.md` for `project-type` and
+   `accepted-deviations` (and `redirect-method` for the redirect
+   rule).
+3. For each rule:
+   - If `requires-project-type` is set and doesn't match → skip,
+     surface under "Пропущені перевірки" with reason
+     "project-type: <X> required, current: <Y>".
+   - If `id` is in `accepted-deviations` AND the rule's
+     `## Виключення` allows suppression → skip, surface under
+     "Пропущені перевірки" with the user's verbatim reason.
+   - Otherwise → consult context7 MCP for currency
+     (`mcp__plugin_context7_context7__query-docs`) before flagging.
+   - Apply the `## Як перевірити` recipe via dataflow tracing.
+   - For each violation → emit a finding using the
+     `## Як доповідати` template (Ukrainian body).
+   - For each rule that PASSED → list under "Перевірені інваріанти".
+4. Group findings by emitted severity (`critical` →
+   `🔴 Критичні баги функціональної логіки`, `suspicious` →
+   `⚠️ Підозрілі патерни`, `observation` → `ℹ️ Спостереження`).

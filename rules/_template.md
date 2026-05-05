@@ -1,46 +1,51 @@
 ---
 id: <category>/<slug>
-severity: error
+severity: suspicious
 category: <category>
 applies-to:
-  - <glob>
-since: "1.0.0"
+  - <hint-pattern>
+since: "2.0.0"
+requires-project-type: with-attribution
 ---
 
 # <Human-readable rule title>
 
-## Чому це важливо
+## Інваріант
 
-(2–6 sentences explaining the why, not the what.)
+(1-3 sentences: what behavior must hold at runtime.)
 
-## Що перевірити
+## Як перевірити
 
-1. (First check the agent should perform — concrete, file/attribute level.)
-2. (Second check.)
+(Dataflow-trace recipe for the agent. Describe which symbols / call
+chains / file types to inspect. NOT a grep recipe.)
+
+1. (First step of reasoning.)
+2. (Second step.)
 3. (...)
 
-## Як це виглядає у поганому проекті
+## Як виглядає поломка
 
-```
-(minimal example showing the violation)
+```kotlin
+(minimal example of the broken behavior)
 ```
 
-## Як це має виглядати
+## Як виглядає правильно
 
-```
-(minimal example of the correct shape)
+```kotlin
+(minimal example of correct behavior)
 ```
 
 ## Як доповідати
 
 ```
-[<rule-id>] <SEVERITY>
-  <file>:<line>
-  <one-sentence finding>
-  Fix: <one-sentence fixer>.
-  See: <examples/... or external link>.
+[<rule-id>] <SEVERITY-IN-CAPS>
+  <file>:<line>          (or <file> if no line, or "(decentralized — see notes)" if no specific file)
+  <one-sentence Ukrainian description of the violation>
+  Як виправити: <one-sentence Ukrainian fix instruction>.
+  Див.: <reference URL or examples/path>.
 ```
 
 ## Виключення
 
-(When suppression via accepted-risks is allowed — or "Жодних".)
+(When suppression via `accepted-deviations` is allowed. Use literal
+`Жодних` if the rule cannot be silenced.)
