@@ -1,8 +1,9 @@
 # Project context for Claude Code
 
-Sample Android casual game built with Kotlin + Jetpack Compose + Hilt.
-Splash queries a remote config endpoint, then either gameplay or a
-WebView landing flow. AAID + OneSignal + Install Referrer integrations.
+Sample Android casual game with attribution flow. Splash queries the
+backend for routing, then either gameplay (organic users still go
+through landing) or WebView landing (always opened, regardless of
+organic/non-organic). OneSignal + Install Referrer + AdsId integrations.
 
 ---
 
@@ -12,30 +13,26 @@ WebView landing flow. AAID + OneSignal + Install Referrer integrations.
 
 example-juicer
 
-## expected-values
+## project-type
 
-applicationId: com.example.juicer
-namespace: com.example.juicer
-minSdk: 26
-targetSdk: 36
+with-attribution
 
-## critical-classes
+## landing-mechanism
 
-- com.example.juicer.core.crypto.**
-- com.example.juicer.data.model.**
-- com.example.juicer.data.api.dto.**
+webview
 
-## sensitive-files
+## redirect-method
 
-- app/src/main/java/com/example/juicer/core/crypto/**
-- app/src/main/java/com/example/juicer/data/api/**
+7.1 webMessageListener
 
-## accepted-risks
+## backend-domain
 
-# This project intentionally suppresses one rule with a written reason.
-# Lines without a leading `#` are active suppressions; commented lines are ignored.
-security/exported-component-without-permission: DeepLinkActivity validates host/scheme in onCreate before dispatching; deliberately public for app://recede-reconcile
+https://example.store
 
-## rule-overrides
+## accepted-deviations
 
-# (R3 placeholder — leave empty for M1.)
+# Lines starting with `#` are comments and are IGNORED.
+# To silence a specific functional check, write a non-commented line:
+#   <rule-id>: <reason>
+# Example (only fires if a real deviation exists):
+# webview/config-completeness: project intentionally uses minimal WebView for read-only landing page

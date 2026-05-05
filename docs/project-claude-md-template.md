@@ -1,17 +1,17 @@
-# Project `.claude/CLAUDE.md` template
+# Project `.claude/CLAUDE.md` template (v2.0)
 
 Place this file at the root of an Android project that will be reviewed
-with `/android-review`. It serves two purposes simultaneously:
-
+with `/android-review`. It serves two purposes:
 1. Project context auto-loaded by Claude Code.
-2. Machine-readable declarations parsed by the orchestrator.
+2. Machine-readable declarations parsed by the `functional-validator`
+   agent.
 
-## Template (copy-paste, then fill the required sections)
+## Template
 
 ```markdown
 # Project context for Claude Code
 
-(Free-form short description of the project. Optional.)
+(Free-form short description, optional.)
 
 ---
 
@@ -21,74 +21,62 @@ with `/android-review`. It serves two purposes simultaneously:
 
 <short-kebab-case-id>
 
-## expected-values
+## project-type
 
-applicationId: <com.example.app>
-namespace: <com.example.app>
-minSdk: 26
-targetSdk: 36
+with-attribution    # or: no-attribution
 
-## critical-classes
+## landing-mechanism
 
-- <com.example.app.crypto.**>
-- <com.example.app.data.model.**>
+webview             # or: custom-tabs | none
 
-## sensitive-files
+## redirect-method
 
-- <app/src/main/java/com/example/app/crypto/**>
-- <app/src/main/java/com/example/app/data/api/**>
+7.1 webMessageListener    # or: 7.2 consoleLog | 7.3 shouldOverrideUrlLoading
 
-## accepted-risks
+## backend-domain
 
-# Lines starting with `#` are comments and are IGNORED by the orchestrator.
-# To actually suppress a rule, write a non-commented line:
-#   <rule-id>: <reason why this risk is accepted>
-# Example:
-# security/exported-component-without-permission: DeepLinkActivity validates host/scheme before dispatching; deliberately public
+https://example.store
 
-## rule-overrides
+## accepted-deviations
 
-# (R3 placeholder — leave empty for M1.)
+# rule-id: justification
 ```
 
 ## Section reference
 
-| Section            | Purpose                                                            | Required? |
-|--------------------|--------------------------------------------------------------------|-----------|
-| `project-id`       | Human-readable id used in report titles and filenames.             | Yes       |
-| `expected-values`  | Optional baseline validation of `applicationId`/`namespace`/SDK.   | No        |
-| `critical-classes` | Glob patterns that must be covered by `-keep` rules. Modern stacks (Hilt + kotlinx.serialization + Compose + Ktor) usually don't need this — consumer-rules from each library cover it automatically. | Optional  |
-| `sensitive-files`  | Glob patterns where the security agent searches harder. Empty = agent scans every Kotlin/Java file. | Optional  |
-| `accepted-risks`   | `<rule-id>: <reason>` — silences a rule if its "Виключення" allows.| Optional  |
-| `rule-overrides`   | Reserved for future R3 per-project rule parameter overrides (unparsed in M1). | Leave empty |
+| Section               | Purpose                                                                                           | Required?    |
+|-----------------------|---------------------------------------------------------------------------------------------------|--------------|
+| `project-id`          | Human-readable id used in report titles and filenames.                                            | Yes          |
+| `project-type`        | `with-attribution` or `no-attribution` — controls whether attribution-flow rules apply.           | Yes          |
+| `landing-mechanism`   | `webview`, `custom-tabs`, or `none` — controls which WebView/CustomTabs rules apply.              | Yes          |
+| `redirect-method`     | `7.1` / `7.2` / `7.3` — which Privacy Policy → game redirect to verify. Leave empty if landing = none/custom-tabs. | Yes (if landing = webview) |
+| `backend-domain`      | Production backend URL for attribution POST and WebView load.                                     | Yes (if project-type = with-attribution) |
+| `accepted-deviations` | `<rule-id>: <reason>` — silences a specific functional check with written justification.          | Optional     |
 
-**Most projects can leave both `critical-classes` and `sensitive-files`
-empty.** The plugin handles missing/empty gracefully — the obfuscation
-auditor falls back to heuristic auto-detection, and the security
-auditor scans all source files. Fill these sections only when you know
-your project genuinely needs them (see the TODO comments in the
-generated CLAUDE.md scaffold for concrete reflection-use-site
-examples).
+## Auto-detection
+
+`/android-review-init` auto-fills `project-type`, `landing-mechanism`,
+and `backend-domain` from the project's gradle and source. The other
+two fields (`redirect-method`, `accepted-deviations`) are TODO for the
+human because they cannot be reliably guessed.
 
 ## What happens if `.claude/CLAUDE.md` is missing
 
-The plugin does not fail. Agents fall back to defaults:
-- `expected-values` checks are skipped.
-- `critical-classes` are heuristically detected by name patterns
-  (`*crypto*`, `*decrypt*`, `*Cipher*`, `*Auth*`, `Key*`).
-- `sensitive-files` defaults to all Kotlin files; expect more noise.
-- `accepted-risks` is empty.
-
-The report header reflects the missing file with `CLAUDE.md: missing ⚠️`.
+The plugin does NOT fail. The `functional-validator` agent uses
+defaults: `project-type = with-attribution`,
+`landing-mechanism = webview`, empty `redirect-method`, empty
+`backend-domain`, empty `accepted-deviations`. Report header notes the
+missing file. Findings may be noisier without project context — run
+`/android-review-init` to fix.
 
 ## What to gitignore
 
-Reports are generated under `.claude/reports/` inside the project.
-Add this to your project's `.gitignore`:
+Reports go to `.claude/reports/`. Add this to your project's
+`.gitignore`:
 
 ```
 .claude/reports/
 ```
 
-`.claude/CLAUDE.md` itself is **not** gitignored — it is configuration,
-and changes to it must be PR-reviewed by your team.
+`.claude/CLAUDE.md` itself is NOT gitignored — it is configuration,
+PR-reviewed by the team.

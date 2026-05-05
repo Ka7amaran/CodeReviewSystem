@@ -1,50 +1,63 @@
-# How to add a rule
+# How to add a rule (v2.0)
 
 ## TL;DR
 
 1. `cp rules/_template.md rules/<category>/<your-slug>.md`
-2. Fill the 5 frontmatter fields.
-3. Fill the 6 body sections (Чому → Що перевірити → Поганий приклад →
-   Хороший приклад → Як доповідати → Виключення).
-4. Bump plugin minor version in `.claude-plugin/plugin.json` and add a
-   line to `CHANGELOG.md`.
-5. PR. Smoke-test against `Juice-Master-Factory` and `Joker-Speed-Seven`
-   per `docs/smoke-test.md` before merge.
+   where `<category>` is `flow`, `webview`, or `crypto`.
+2. Fill the 5 mandatory frontmatter fields (+ `requires-project-type`
+   if applicable).
+3. Fill the 6 body sections (Інваріант / Як перевірити / Як виглядає
+   поломка / Як виглядає правильно / Як доповідати / Виключення).
+4. Bump plugin minor version in `.claude-plugin/plugin.json` and
+   `marketplace.json`. Add a CHANGELOG line.
+5. PR. Smoke-test against a real team project per `docs/smoke-test.md`
+   before merge.
 
 ## Choosing the right severity
 
-- **error** — blocks release. Use only if the rule corresponds to a
-  hard requirement (Play policy, certain crash, leaked secret).
-- **warning** — must review and either fix or accept. Default for
-  best-practices.
-- **info** — observation; doesn't change verdict. Use for style nits
-  or "consider doing X".
+- **`critical`** — broken invariant causes runtime issue or violates
+  the user-defined contract. Verdict becomes `🔴 НЕ ГОТОВО`. Reserve
+  for hard contracts (e.g., `flow/organic-routing-critical`).
+- **`suspicious`** — non-blocking heuristic, worth a glance. Default
+  for most rules.
+- **`observation`** — informational, never blocks.
 
-## `applies-to` patterns
+## Choosing the right category
 
-- Use globs relative to the project root (e.g., `app/src/main/**/*.kt`).
-- Be **narrow**. The agent uses this for pre-filtering — wide patterns
-  cost tokens and slow the run.
-- For manifest rules, target `app/src/main/AndroidManifest.xml`
-  exactly.
+- **`flow/`** — runtime behavior on app startup or attribution
+  (UUID, push init, attribution, routing, redirect method).
+- **`webview/`** — WebView/CustomTabs configuration and host Activity.
+- **`crypto/`** — POST-data encoding pattern (no path pinning).
 
-## When to use "Жодних" in `## Виключення`
+If a rule doesn't fit these — reconsider whether it should be a static
+rule at all. v2.0's philosophy is functional invariants, not generic
+best practices.
 
-Use literal `Жодних` (or `None`) when the rule:
-- corresponds to a Google Play hard requirement, OR
-- corresponds to a certain runtime crash, OR
-- there is a built-in legitimate workaround at the source level
-  (e.g., scoped `network_security_config.xml`).
+## `requires-project-type`
 
-Otherwise, document a narrow exception path.
+Set to `with-attribution` for rules that only apply when attribution is
+present (most `flow/` rules). Set to `no-attribution` for rules that
+only apply for game-only builds (rare). Leave unset if the rule is
+universal (most `webview/` and `crypto/` rules).
+
+## When to use `Жодних` in `## Виключення`
+
+Reserve `Жодних` for hard contracts that the team has decided cannot
+be silenced via `accepted-deviations`. Currently this applies only to
+`flow/organic-routing-critical` and `flow/uuid-persistence`.
+
+For all other rules, document a narrow exception path with required
+justification format.
 
 ## Anti-patterns when writing rules
 
-- Don't write rules that overlap silently with another rule. If a
-  finding could trigger two rules, pick one as the canonical.
-- Don't let `## Що перевірити` reference project specifics. The rule
-  must work across all your apps.
-- Don't bury the fix in prose. The fix must appear in the
-  `## Як доповідати` template explicitly.
-- Don't add rules that require dynamic analysis (e.g., "the app makes
-  fewer than N HTTP requests during cold start"). MVP is static-only.
+- Don't pin to file paths or class names. The team's apps vary widely
+  on structure.
+- Don't pin to library versions or specific SDKs. Multiple SDKs may
+  achieve the same functional outcome.
+- Don't write `## Як перевірити` as a grep recipe. Write it as a
+  reasoning recipe — what dataflow chains the agent should trace.
+- Don't add rules that require dynamic analysis (HTTP traffic,
+  installed APK behavior) — v2.0 is static-only.
+- Don't restate generic Android best practices that R8/AGP already
+  enforce.
