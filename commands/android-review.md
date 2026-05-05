@@ -1,29 +1,27 @@
 ---
-description: Run a full Android Review on the current project (style + security + obfuscation + cross-cutting analysis). Saves report to .claude/reports/.
+description: "v2.0 — Run a full Android Review of the current project — functional validation against the team's contract. Saves report to .claude/reports/."
 ---
 
-# /android-review
+# /android-review (v2.0)
 
-Run a complete Android code review on the project at the current
-working directory.
+Run a complete functional review on the project at the current working
+directory.
 
 ## What this does
 
-1. Validates that you are at the root of an Android project
-   (looks for `app/build.gradle(.kts)`).
-2. Reads `.claude/CLAUDE.md` if present (project-id, expected-values,
-   critical-classes, sensitive-files, accepted-risks).
-3. Dispatches three sub-agents in parallel:
-   - **style-auditor** — Kotlin idioms, Compose recomposition, Hilt usage
-   - **security-auditor** — manifest, permissions, cleartext, secrets
-   - **obfuscation-auditor** — ProGuard/R8 rules vs critical classes
-4. Performs cross-cutting analysis (e.g., exported component not -keep'd).
-5. Saves a dual-format report to `.claude/reports/<project-id>-android-review.md`
-   and `.claude/reports/<project-id>-android-review.gdoc.txt`.
+1. Validates that you are at the root of an Android project (looks for
+   `app/build.gradle(.kts)`).
+2. Auto-detects plugin root (Claude Code 2.1.x doesn't expose
+   `${CLAUDE_PLUGIN_ROOT}` to slash commands).
+3. Reads `.claude/CLAUDE.md` (5 fields: project-type, landing-mechanism,
+   redirect-method, backend-domain, accepted-deviations).
+4. Dispatches the `functional-validator` sub-agent. The agent applies
+   8 functional rules via dataflow tracing.
+5. Saves the report as `.claude/reports/<project-id>-android-review.md`,
+   archiving the previous one to `archive/<project-id>-<timestamp>.md`.
+6. Prints a compact summary in the terminal.
 
 ## Usage
-
-Run from your Android project's root directory:
 
 ```
 cd <android-project-root>
@@ -31,618 +29,142 @@ claude
 /android-review
 ```
 
-## Read-only safety
-
-This command does not modify your project source code. `Edit` and
-mutating shell commands (`rm`, `git`, `curl`, `wget`, `npm`, `pip`,
-`brew`) are denied at the harness level — the agent literally cannot
-execute them, regardless of input.
-
-`Write` and a small set of file-system Bash verbs (`mkdir`, `mv`,
-`date`, `pwd`, `basename`, `echo`) are allowed because the orchestrator
-must save report files. The orchestrator's procedure restricts those
-writes to `.claude/reports/` — this is **procedural** (not enforced at
-the harness level). If you observe writes outside `.claude/reports/`,
-please report it as a bug.
-
 ---
 
-## Plugin root (runtime auto-detection)
+## Step 1 — Validate Android project root
 
-Claude Code 2.1.x does NOT expose `${CLAUDE_PLUGIN_ROOT}` to slash
-commands. Instead, the plugin's installation directory must be
-discovered at runtime. Step 1.5 below is dedicated to this.
+Use `Glob` (not Bash) to check for `app/build.gradle.kts` or
+`app/build.gradle` in cwd.
 
-For all `<PLUGIN_ROOT>` substitutions in this file, use the value
-`PLUGIN_ROOT` computed in Step 1.5.
-
----
-
-## Orchestration procedure (you, the slash-command runner, execute this directly)
-
-You are NOT an orchestrator sub-agent. The previous architecture
-attempted to put orchestration into a `Task`-dispatched sub-agent, but
-Claude Code 2.1.x forbids `Task` calls from inside a sub-agent (`Task
-is not available inside subagents`). Therefore the slash-command body
-itself drives the orchestration. You ARE the orchestrator. Do NOT
-attempt to dispatch an `orchestrator` sub-agent — that agent is
-deprecated.
-
-You DO have `Task` available because you are running at the top level
-of the slash command, not inside a sub-agent. Use `Task` to dispatch
-the three category auditors as siblings.
-
-Follow the steps below exactly, in order.
-
-### Step 0 — Mandatory dispatch discipline
-
-Do NOT do ANY of the following:
-- Skip steps because "this doesn't look like an Android project" — Step 1
-  handles that case explicitly. Run Step 1 first.
-- Translate the abort message in Step 1 (it must be verbatim English).
-- Decide on your own to scan `~/StudioProjects/` or any other directory
-  for projects.
-- Ask the user "which project to check?".
-
-### Step 1 — Validate the project root
-
-Use `Glob` (not Bash) to check for the existence of either
-`app/build.gradle.kts` or `app/build.gradle` in the current working
-directory.
-
-If neither file exists, your ENTIRE response to the user must be
-exactly the two lines below — verbatim, in English, no preamble, no
-postamble, no translation, no paraphrasing, no follow-up question:
+If neither exists, your ENTIRE response must be exactly the two lines
+below — verbatim, in English, no preamble, no postamble, no
+translation, no follow-up:
 
 ```
 This is not an Android project root. Expected app/build.gradle(.kts) — not found.
 Did you cd to the project root before launching claude?
 ```
 
-After printing those two lines, STOP. Do NOT call any further tools.
-Do NOT generate a report. Do NOT save anything. Your turn ends.
+After printing, STOP. Do NOT call any further tools. Do NOT translate.
+Do NOT scan filesystem for nearby Android projects.
 
-**Negative examples (DO NOT produce output that looks like these):**
+## Step 2 — Locate plugin root (runtime auto-detection)
 
-- ❌ "Поточна директорія не є коренем Android-проєкту…" (translated; forbidden).
-- ❌ "This is not… Якщо хочете, скажіть де лежить проєкт." (follow-up; forbidden).
-- ❌ Message followed by a `Bash(ls /Users/mac/StudioProjects/)` tool call (post-abort tool use; forbidden).
-
-✅ GOOD: Exactly the two-line English message, then nothing.
-
-### Step 1.5 — Locate the plugin root
-
-The plugin's `rules/` directory and `.claude-plugin/plugin.json` live
-in the plugin's installation directory. Each Task tool prompt below
-needs `Plugin root: <PLUGIN_ROOT>`, and step 8 reads
-`<PLUGIN_ROOT>/.claude-plugin/plugin.json` for the version.
-
-Discover the path at runtime with one Bash call:
+Use Bash:
 
 ```
 ls -td "$HOME/.claude/plugins/cache/android-review-marketplace/android-review/"*/ 2>/dev/null | head -1
 ```
 
 Take the first line of stdout (the most recently-installed version's
-directory). Strip any trailing slash. Bind that string as `PLUGIN_ROOT`
-for the rest of the procedure.
+directory). Strip trailing slash. Bind as `PLUGIN_ROOT`.
 
-If the command produced no output (the plugin is not installed under
-that path), abort with this exact message and stop:
+If output is empty, abort with:
 
 ```
 Cannot locate the android-review plugin's installation under $HOME/.claude/plugins/cache/android-review-marketplace/. Reinstall via /plugins → Marketplaces → Update marketplace.
 ```
 
-This auto-detection makes the plugin portable: it works on any machine
-where the plugin was installed via the standard marketplace flow,
-regardless of the user's home directory.
+## Step 3 — Determine project-id
 
-### Step 2 — Read project context (`.claude/CLAUDE.md`)
+- If `.claude/CLAUDE.md` exists and `## project-id` parses to a
+  non-empty token, use that value.
+- Otherwise, fall back to `pwd | xargs basename`, lowercase,
+  whitespace/underscores → `-`, collapse multiple `-`. (`xargs` may
+  trigger one-time permission prompt — acceptable.)
 
-Try to read `.claude/CLAUDE.md` from the project root using the `Read`
-tool. There are three states; the one chosen drives the
-`**CLAUDE.md:**` header line in step 8:
+## Step 4 — Dispatch the functional-validator
 
-- **`found ✓`** — file present, all six expected sections (`project-id`,
-  `expected-values`, `critical-classes`, `sensitive-files`,
-  `accepted-risks`, `rule-overrides`) parse cleanly.
-- **`missing ⚠️`** — file does not exist or is unreadable.
-- **`partially parseable ⚠️`** — file exists but at least one section is
-  malformed. Skip the malformed section silently (do not fail), and in the
-  header note which section was unparseable, e.g.
-  `CLAUDE.md: partially parseable ⚠️ (expected-values section unparseable, ignored)`.
-
-An empty section (header present but body contains only whitespace or
-`#`-prefix comments) is considered to PARSE CLEANLY with an empty
-value. Only structurally malformed sections (e.g., a list where bullets
-are not `- ` prefixed, or `<key>: <value>` lines with broken syntax)
-trigger `partially parseable ⚠️` status.
-
-You will use:
-- `project-id` in step 3.
-- `accepted-risks`, `critical-classes`, `sensitive-files` are read by
-  sub-agents themselves; you only need to determine that the sections parse.
-- `rule-overrides` is an R3 placeholder and is intentionally ignored.
-
-Do NOT read project source code yourself. Your only project-level
-reads are `.claude/CLAUDE.md`, `app/build.gradle*` (existence check via
-Glob), `app/src/main/AndroidManifest.xml` (cross-cutting), and
-`app/proguard-rules.pro` (cross-cutting). All rule-driven source
-analysis is performed by sub-agents.
-
-### Step 3 — Determine `project-id`
-
-- If `.claude/CLAUDE.md` was found and the `## project-id` section parsed
-  to a non-empty token, use that value.
-- Otherwise, fall back to the basename of cwd, normalized to lowercase
-  kebab-case. Use Bash:
-
-  ```
-  pwd | xargs basename
-  ```
-
-  Then transform the result to lowercase, replace any whitespace and
-  underscores with `-`, and collapse multiple `-` into one. (`xargs` may
-  trigger a permission prompt on first use — that is acceptable.)
-
-Hold this value as `<project-id>` for the rest of the procedure.
-
-### Step 4 — Dispatch three sub-agents IN PARALLEL
-
-You MUST dispatch all three sub-agents in a SINGLE assistant message
-containing three `Task` tool calls. Do NOT call them sequentially.
-Issuing them in one message is what makes them run in parallel.
-
-Each Task call must include `Plugin root: <PLUGIN_ROOT>` in its prompt
-(substituting the actual value from `PLUGIN_ROOT_RESOLVED` above).
-Sub-agents abort if `Plugin root:` is missing.
-
-Use this exact prompt template for each sub-agent (substitute the
-category):
+Use the `Task` tool with `subagent_type: functional-validator` and this
+prompt body. Substitute the discovered `PLUGIN_ROOT`:
 
 ```
 Plugin root: <PLUGIN_ROOT>
 
-Run a full <category> audit on the Android project at the current working directory. Follow your system prompt's procedure exactly. Return the markdown report only.
+Run a full functional Android review on the project at the current working directory. Follow your system prompt's procedure exactly. Return the markdown report only.
 ```
 
-Three Task tool calls in ONE message:
-- `subagent_type: style-auditor`, prompt with category `style`.
-- `subagent_type: security-auditor`, prompt with category `security`.
-- `subagent_type: obfuscation-auditor`, prompt with category `obfuscation`.
+Wait for the agent's return. The agent returns a markdown report whose
+top-level heading is `## Android Review`.
 
-**Note (R2 separation):** each sub-agent re-reads the project's
-`.claude/CLAUDE.md` itself. You do NOT forward parsed values into the
-sub-agent prompts. This preserves the principle that rules and project
-context are sub-agent inputs, not orchestrator state.
+## Step 5 — Read project metadata for the report header
 
-Record the wall-clock start time before dispatch and the wall-clock
-end time after all three return. Per-agent wall-clock is the difference
-if the runtime exposes it; otherwise omit per-agent times and report
-only the total.
+Use `Read` on `<PLUGIN_ROOT>/.claude-plugin/plugin.json` and parse
+`version` field.
 
-### Step 5 — Collect three sub-reports
+Use Bash `date "+%Y-%m-%d %H:%M"` for the report date (capture as
+`REPORT_DATE`, use once).
 
-Each sub-agent returns a markdown report whose top-level section is
-one of `## Style audit`, `## Security audit`, `## Obfuscation audit`.
-Capture each report verbatim. Do NOT retry any sub-agent.
+## Step 6 — Compose the final report (Ukrainian)
 
-A sub-agent is considered to have failed if any of these is true:
-- the Task tool itself errored (timeout, unhandled exception);
-- the returned text does not contain the expected `## <Category> audit`
-  heading;
-- the report is missing all four expected subsections (`Errors`,
-  `Warnings`, `Info`, `Skipped rules`).
-
-For each failure, record an entry in an internal `agent_failures` list
-with the agent name and a one-line reason. If the sub-agent returned
-malformed-but-partial output, KEEP the partial output verbatim so it
-can be embedded in the appropriate section of the final report, and
-note the partial nature under `## Skipped rules`.
-
-If at least one failure exists, the verdict in step 7 will be
-`INCOMPLETE`.
-
-The `since: <semver>` frontmatter field of each rule (spec §9.5) is
-checked by the SUB-AGENT, not by you. If a rule's `since` is newer
-than the plugin version, the sub-agent skips it and lists it in its
-own `### Skipped rules` subsection. Forward those entries to the final
-report's `## Skipped rules` section unchanged.
-
-### Step 6 — Cross-cutting analysis
-
-For MVP, implement EXACTLY ONE cross-cutting check.
-
-**`cross/exported-component-not-keep`** — fires only when:
-
-1. The security sub-report contains at least one finding tagged with
-   `[security/exported-component-without-permission]` (search the
-   security report text for that exact bracketed tag), AND
-2. For each such finding:
-   - Extract the raw component name from the finding text. The security
-     rule's `## Як доповідати` template emits `<component-tag> "<name>"`
-     — `<name>` is what was in the manifest's `android:name` attribute,
-     which is **almost always a relative form** (e.g., `.MainActivity`,
-     `.push.PushService`).
-   - Canonicalize the name to a fully-qualified class name (FQCN):
-     a. If the raw name starts with `.`, prepend the manifest's
-        `package=` attribute. Read it from
-        `app/src/main/AndroidManifest.xml`.
-     b. If the raw name contains no `.` at all, also prepend the
-        package (relative single-segment names).
-     c. If the raw name already contains one or more `.` segments
-        without a leading `.`, treat it as already-FQCN.
-   - Use the FQCN form in BOTH (i) the `-keep` pattern coverage check
-     and (ii) the suggested fix in the cross-cutting finding.
-   AND
-3. That component class is NOT covered by any `-keep` pattern in
-   `app/proguard-rules.pro`. To check coverage:
-   - Read `app/proguard-rules.pro` (if absent, treat as empty — every
-     component is uncovered).
-   - For each `-keep`/`-keepclass`/`-keepclasseswithmembers` line,
-     extract the class pattern (everything between `class` and the
-     optional `{ ... }` or end-of-line). Patterns may use ProGuard
-     glob syntax (`*`, `**`, `?`).
-   - Match the component FQCN against each pattern using these
-     equivalences: `**` matches any sequence including dots, `*`
-     matches any sequence not containing `.`, `?` matches a single
-     non-dot char.
-   - If at least one pattern matches, the component IS covered.
-
-For each component that triggers the check, emit ONE finding with this
-exact format (severity `error`):
-
-```
-[cross/exported-component-not-keep] ERROR
-  app/src/main/AndroidManifest.xml + app/proguard-rules.pro
-  <component-name> експортовано І не покрито жодним -keep правилом. Після R8-мініфікації клас може бути перейменований; intent-filter resolution на рантаймі провалиться, спричиняючи краш при спробі зовнішніх додатків запустити компонент.
-  Як виправити: додайте `-keep class <fqcn-of-component> { *; }` у app/proguard-rules.pro.
-```
-
-If the security sub-report contains no
-`[security/exported-component-without-permission]` findings, the
-cross-cutting findings list for this run is empty.
-
-### Step 7 — Compute verdict
-
-Aggregate all findings across the three sub-reports plus cross-cutting:
-
-- Count `error`-severity findings → `errors_total`.
-- Count `warning`-severity findings → `warnings_total`.
-- Count `info`-severity findings → `info_total`.
-- Count `Skipped rules` entries → `skipped_total`.
-
-Verdict (apply the FIRST matching rule):
-
-| Condition                                              | Verdict                |
-|--------------------------------------------------------|------------------------|
-| `agent_failures` is non-empty                          | `INCOMPLETE`           |
-| `errors_total ≥ 1`                                     | `NOT READY`            |
-| `errors_total == 0` AND `warnings_total ≥ 1`           | `READY WITH WARNINGS`  |
-| `errors_total == 0` AND `warnings_total == 0`          | `READY`                |
-
-`INCOMPLETE` takes precedence over `NOT READY` (a partial run with
-errors is still `INCOMPLETE`).
-
-### Step 8 — Format the final report
-
-- Read the plugin version from `<PLUGIN_ROOT>/.claude-plugin/plugin.json`
-  using the `Read` tool. Parse the JSON in your reasoning to extract
-  the `version` field. Use that string verbatim in the
-  `**Plugin version:**` header field.
-- Compute the report-header date ONCE: run `date "+%Y-%m-%d %H:%M"`
-  and bind it. Use this value in the `**Date:**` field. Do NOT
-  recompute later.
-
-Produce the report in **Ukrainian** (UA-localized headers and labels).
-Rule IDs and severity tokens (`[security/no-cleartext-traffic] ERROR`)
-stay English — they are stable machine-readable identifiers. Only the
-section headers, finding-body prose, verdict labels, and table column
-names are translated. Sub-agent finding bodies are already Ukrainian
-(see each rule's `## Як доповідати` template).
-
-Use this exact skeleton (substitute placeholders):
-
-```
-# Звіт з Android Review — <project-id>
-
-**Дата:** <YYYY-MM-DD HH:MM>
-**Версія плагіна:** <semver-or-unknown>
-**Проєкт:** <absolute path of cwd>
-**CLAUDE.md:** <знайдено ✓ | відсутній ⚠️ | частково розпарсено ⚠️ (<sections>)>
-
----
-
-## Зведення
-
-| Категорія    | Помилки | Попередж. | Інфо | Пропущ. |
-|--------------|---------|-----------|------|---------|
-| Стиль        | <e>     | <w>       | <i>  | <s>     |
-| Безпека      | <e>     | <w>       | <i>  | <s>     |
-| Обфускація   | <e>     | <w>       | <i>  | <s>     |
-| **Усього**   | <E>     | <W>       | <I>  | <S>     |
-
-**Вердикт:** <ГОТОВО | ГОТОВО З ПОПЕРЕДЖЕННЯМИ | НЕ ГОТОВО | НЕПОВНИЙ ПРОГІН>
-
----
-
-## 🔴 Помилки (обов'язково виправити)
-
-(зведені error-severity знахідки з усіх sub-reports + cross-cutting)
-
----
-
-## 🟡 Попередження (рекомендується)
-
-(зведені warning-severity знахідки)
-
----
-
-## ℹ️ Інформація
-
-(зведені info-severity знахідки)
-
----
-
-## 🔗 Перехресні знахідки
-
-(перелік cross-cutting знахідок зі step 6, або `(відсутні)`)
-
----
-
-## ⚠️ Збої агентів
-
-(розділ присутній ТІЛЬКИ якщо `agent_failures` непорожній; один запис
-на агента: назва, причина і будь-який часткові вивід дослівно)
-
----
-
-## Пропущені правила
-
-(зведені Skipped rules з усіх трьох sub-reports, дедупльовані)
-
----
-
-## Деталі запуску
-
-- style-auditor:       <час або "n/a">, <правил або "n/a"> правил застосовано, <findings-count> знахідок
-- security-auditor:    <час або "n/a">, <правил або "n/a"> правил застосовано, <findings-count> знахідок
-- obfuscation-auditor: <час або "n/a">, <правил або "n/a"> правил застосовано, <findings-count> знахідок
-- orchestrator merge:  <X> перехресних знахідок
-- Загальний час:       <час або "n/a">
-```
-
-**Verdict mapping** (use exact UA strings in the report):
-
-| English (internal logic)   | UA (rendered in report)        |
-|----------------------------|--------------------------------|
-| `READY`                    | `ГОТОВО`                       |
-| `READY WITH WARNINGS`      | `ГОТОВО З ПОПЕРЕДЖЕННЯМИ`      |
-| `NOT READY`                | `НЕ ГОТОВО`                    |
-| `INCOMPLETE`               | `НЕПОВНИЙ ПРОГІН`              |
-
-**CLAUDE.md status mapping**:
-
-| Internal       | UA                                  |
-|----------------|-------------------------------------|
-| `found ✓`      | `знайдено ✓`                        |
-| `missing ⚠️`   | `відсутній ⚠️`                      |
-| `partially parseable ⚠️` | `частково розпарсено ⚠️`  |
-
-If a category section has zero findings, write `(відсутні)` under that
-heading.
-
-Detailed rules for filling sections:
-
-- **Per-category counts.** Parse each sub-report's `### Errors`,
-  `### Warnings`, `### Info`, `### Skipped rules` subsections; count
-  entries. A "finding entry" is a paragraph starting with a line
-  matching this exact regex: `^\[[a-z0-9\-/]+\] (ERROR|WARNING|INFO)$`.
-  Lines that don't match this anchor (truncated/malformed) are NOT
-  counted toward `Errors`/`Warnings`/`Info`. Surface them under
-  `## Skipped rules` with reason `malformed sub-report entry`.
-  Cross-cutting findings count toward neither Style nor Security nor
-  Obfuscation rows — they only contribute to the `**Total**` row and
-  to the `## 🔗 Cross-cutting findings` section.
-- **Sort order in `## 🔴 Errors`, `## 🟡 Warnings`, `## ℹ️ Info`.**
-  Within each severity, sort by file path (lexicographic), then by
-  line number (ascending).
-  Location extraction protocol:
-  - The location is on the SECOND non-blank line of the finding entry,
-    immediately below the `[<rule-id>] <SEVERITY>` header.
-  - Format: `  <file>:<line>` (two-space indent).
-  - Special cases:
-    - `<file>:0` (e.g., `crypto-classes-keep-rules-present` file-level
-      finding) sorts as line 0 — first within that file.
-    - Cross-cutting findings whose location line lists multiple files
-      separated by ` + ` sort by the FIRST file's path, line 0.
-    - Findings with no parseable location go last within their
-      severity, in the order they appeared in the sub-report.
-- **If a category has zero findings**, write `(none)` under that
-  section heading.
-- **Findings inclusion.** Do NOT rewrite findings — copy each one
-  verbatim from the sub-reports (and from step 6 for cross-cutting).
-  Cross-cutting `error`-severity findings appear in BOTH `## 🔴 Errors`
-  AND `## 🔗 Cross-cutting findings`.
-- **Skipped rules deduplication.** If the same `<rule-id>` appears in
-  multiple sub-reports' Skipped sections, keep one entry, joining
-  reasons with `; `.
-- **Agent failures section.** Omit entirely if `agent_failures` is
-  empty. Do NOT write `(none)` and do NOT include the heading.
-- **No fabrication.** If a section has no content, write `(none)`
-  (except `## ⚠️ Agent failures`, which is omitted entirely). Never
-  invent findings to fill a section.
-- **Run details fallback values:**
-  - If wall-clock is not available from the runtime: write `n/a`.
-  - If a sub-report does not surface the `rules applied` count: write
-    `n/a`.
-  - `findings-count` = the count from the regex above.
-
-### Step 9 — Save outputs (Format B + N3 archive)
-
-- Compute the archive timestamp ONCE at the start of step 9: run
-  `date "+%Y-%m-%d-%H%M"` and bind it as `TS`. Use the SAME value for
-  BOTH the `.md` archive `mv` AND the `.gdoc.txt` archive `mv`. Do NOT
-  recompute between the two moves.
-- Timestamp granularity is one minute. Two `/android-review` runs
-  within the same minute will overwrite the previous archive entry.
-  Acceptable for MVP.
-
-Use `<project-id>` from step 3.
-
-Sequence:
-
-1. Ensure archive directory exists (Bash):
-   ```
-   mkdir -p .claude/reports/archive
-   ```
-2. If `.claude/reports/<project-id>-android-review.md` already exists,
-   move it (Bash):
-   ```
-   mv .claude/reports/<project-id>-android-review.md .claude/reports/archive/<project-id>-<TS>.md
-   ```
-3. If `.claude/reports/<project-id>-android-review.gdoc.txt` already
-   exists, move it (Bash):
-   ```
-   mv .claude/reports/<project-id>-android-review.gdoc.txt .claude/reports/archive/<project-id>-<TS>.gdoc.txt
-   ```
-4. Use the `Write` tool to create
-   `.claude/reports/<project-id>-android-review.md` with the full
-   markdown report from step 8.
-5. Use the `Write` tool to create
-   `.claude/reports/<project-id>-android-review.gdoc.txt` with the
-   Google-Docs-friendly transformation of the markdown.
-
-**Markdown → gdoc.txt conversion rules.** Apply in this order to the
-exact text produced in step 8. The output must be **clean, readable,
-Ukrainian-language plain text** that pastes well into Google Docs:
-
-1. **Code-fenced blocks (triple-backtick).** Detect every block opening
-   with a line that is exactly ` ``` ` (or ` ```<lang> `) and closing
-   with a matching ` ``` ` line. **Strip BOTH the opening and closing
-   fence lines entirely** — do NOT keep them in the output. Keep the
-   block's body content as-is. Add one blank line BEFORE the body and
-   one blank line AFTER. This is the most important fix for
-   readability — without it, every finding looks like ``` followed by
-   plain text followed by ``` and the result is unusable in Google Docs.
-2. **Headings.** Replace any line matching `^#{1,3} (.*)$` with the
-   captured text in UPPERCASE, followed by one blank line.
-   `## Зведення` → `ЗВЕДЕННЯ` then blank line.
-3. **Markdown tables.** Detect contiguous blocks where every line
-   starts with `|`. Drop the alignment row (`|---|---|...`). For each
-   remaining row, strip the leading and trailing `|`, split on `|`,
-   trim each cell, and join cells with a single tab character (`\t`).
-   Output one row per line. Add a blank line after the table.
-4. **Markdown links.** Replace `[text](url)` with `text (url)`.
-5. **Inline backticks.** Leave the backticks as-is. Google Docs
-   renders them as plain text and that is acceptable for short
-   inline tokens.
-6. **Bullets.** `- ` markdown bullets pass through as `- `. `*` and
-   `+` markdown bullets are converted to `- ` for consistency. Do not
-   introduce `• ` or other Unicode bullet characters.
-7. **Horizontal rules.** Replace `---` lines with a single blank line.
-8. **Bold/italic markup** (`**bold**`, `*italic*`). Strip the `**`
-   and `*` markers; keep the inner text plain.
-9. **Severity emoji** (`🔴`, `🟡`, `ℹ️`, `✓`, `❌`, `⚠️`). KEEP as-is.
-10. **Findings separator.** Between successive finding entries (lines
-    starting with `[<rule-id>]`), ensure exactly one blank line. This
-    makes the output skim-readable in Google Docs.
-11. **No HTML, no markdown markup other than bullets/numbers** in the
-    output. Resulting file is plain UTF-8 text, suitable for direct
-    paste into a Google Docs document.
-
-### Step 10 — Terminal summary (NOT the full report)
-
-Do NOT print the full markdown report to the terminal. The full report
-is already saved to `.claude/reports/`; printing it again pollutes the
-terminal and forces the user to scroll through hundreds of lines of
-content that they will read in a viewer or paste into Google Docs.
-
-Print ONLY this compact summary as your final assistant message —
-nothing more, nothing less, in **Ukrainian** with this exact structure:
+Take the agent's output and wrap it in the report skeleton:
 
 ```
 # Android Review — <project-id>
 
-**Дата:** <YYYY-MM-DD HH:MM>  •  **Плагін:** <semver>  •  **CLAUDE.md:** <знайдено ✓ | відсутній ⚠️ | частково розпарсено ⚠️>
+**Дата:** <REPORT_DATE>  •  **Версія плагіна:** <plugin-version>
+**Тип проєкту:** <project-type>  •  **Лендинг:** <landing-mechanism>  •  **Метод редіректу:** <redirect-method or "n/a">
 
-| Категорія    | Помилки | Попередж. | Інфо | Пропущ. |
-|--------------|---------|-----------|------|---------|
-| Стиль        | <e>     | <w>       | <i>  | <s>     |
-| Безпека      | <e>     | <w>       | <i>  | <s>     |
-| Обфускація   | <e>     | <w>       | <i>  | <s>     |
-| **Усього**   | <E>     | <W>       | <I>  | <S>     |
-
-**Вердикт:** <ГОТОВО | ГОТОВО З ПОПЕРЕДЖЕННЯМИ | НЕ ГОТОВО | НЕПОВНИЙ ПРОГІН>
-
-**Перехресні знахідки:** <count or "відсутні">
-**Збої агентів:** <count or "відсутні">
-
-**Збережено:**
-- `.claude/reports/<project-id>-android-review.md` (повний звіт)
-- `.claude/reports/<project-id>-android-review.gdoc.txt` (Google-Docs-сумісний)
-```
-
-Notes for filling the summary:
-- Counts come from step 7's aggregation. Use Ukrainian verdict labels
-  per the mapping table in step 8.
-- `Перехресні знахідки: <count>` — write `відсутні` if zero,
-  otherwise the integer count.
-- `Збої агентів: <count>` — write `відсутні` if zero, otherwise the
-  integer count followed by the list (one bullet per failed agent
-  with a one-line reason). Example:
-  ```
-  **Збої агентів:** 1
-  - obfuscation-auditor — таймаут Task tool після 60с. Частковий вивід: ...
-  ```
-- Do NOT include the per-finding details (no `[<rule-id>] ERROR/WARNING/INFO`
-  blocks, no `Помилки` / `Попередження` / `Інфо` headers in the
-  terminal). Those are in the saved files.
-- Do NOT include the `Деталі запуску` section in the terminal output —
-  it stays in the saved files.
-
-If the save step fails, replace the `**Збережено:**` block with:
-
-```
-**Збережено:** ПОМИЛКА — <reason>
-```
-
-Never retry the save. Never print the full report as a fallback.
+## Вердикт: <verdict>
 
 ---
 
-## Hard constraints
+<entire agent output, with "## Android Review" stripped — only its subsections>
 
-- **Read-only project source.** You must NEVER modify project source
-  files. The only files you write are the two output reports under
-  `.claude/reports/` (via `Write` tool). The only files you move are
-  the previous reports into `.claude/reports/archive/` (via `mv`).
-- **No project-source reads to formulate findings.** Your project-level
-  reads are limited to `.claude/CLAUDE.md`, `app/build.gradle.kts`/
-  `app/build.gradle` (existence check via Glob),
-  `app/src/main/AndroidManifest.xml` (cross-cutting context),
-  `app/proguard-rules.pro` (cross-cutting context). Sub-agents do all
-  rule-driven source analysis.
-- **No retry of failed sub-agents.** One attempt only.
-- **No fabricated findings.** Never invent content to fill an empty
-  section.
-- **Parallel dispatch.** The three sub-agent Task tool calls MUST be
-  issued in a single assistant message. Sequential calls are a bug.
-- **Forward `Plugin root:` verbatim.** Each Task tool prompt MUST
-  contain `Plugin root: <PLUGIN_ROOT>` so the sub-agent's procedure
-  step 1 succeeds.
-- **Cross-cutting trigger.** `cross/exported-component-not-keep` only
-  fires when the security sub-report contains at least one
-  `[security/exported-component-without-permission]` finding. Do NOT
-  re-evaluate the manifest to decide whether components are exported.
-- **Verdict precedence.** `INCOMPLETE` > `NOT READY` >
-  `READY WITH WARNINGS` > `READY`.
-- **Stable output.** Sort findings by file path then line number
-  within each severity section. Identical inputs produce identical
-  reports.
-- **No partial writes.** Only after both files are written do you
-  print the `Saved:` footer.
-- **Hard-abort discipline (Step 1).** If the project root validation
-  fails, emit ONLY the two-line English message and stop. No
-  translation. No follow-up. No tool calls afterward.
+---
+```
+
+Verdict computation:
+- 0 critical AND 0 suspicious → `✅ ГОТОВО`.
+- 0 critical AND ≥1 suspicious → `⚠️ З ЗАСТЕРЕЖЕННЯМИ`.
+- ≥1 critical → `🔴 НЕ ГОТОВО`.
+
+## Step 7 — Save report (with N3 archive)
+
+Compute archive timestamp ONCE: `date "+%Y-%m-%d-%H%M"` → `TS`.
+
+Sequence (Bash):
+
+```
+mkdir -p .claude/reports/archive
+[ -f ".claude/reports/<project-id>-android-review.md" ] && \
+  mv ".claude/reports/<project-id>-android-review.md" \
+     ".claude/reports/archive/<project-id>-<TS>.md"
+```
+
+Use `Write` to create `.claude/reports/<project-id>-android-review.md`
+with the full report from Step 6.
+
+## Step 8 — Terminal summary (NOT the full report)
+
+Print ONLY this compact summary as your final assistant message:
+
+```
+# Android Review — <project-id>
+
+**Дата:** <REPORT_DATE>  •  **Плагін:** <plugin-version>
+**Тип:** <project-type>  •  **Лендинг:** <landing-mechanism>  •  **Редірект:** <redirect-method or "n/a">
+
+**Вердикт:** <verdict>
+
+**Критичні:** <count>
+**Підозрілі:** <count>
+**Спостереження:** <count>
+**Пропущено правил:** <count>
+
+**Збережено:** `.claude/reports/<project-id>-android-review.md`
+```
+
+If the save step fails, replace the `**Збережено:**` line with:
+`**Збережено:** ПОМИЛКА — <reason>`. Never retry. Never print the
+full report as a fallback.
+
+## Mandatory dispatch discipline
+
+Do NOT do any of the following:
+- Skip steps because "this doesn't look like an Android project" — Step 1
+  handles that case.
+- Translate the abort message in Step 1 (verbatim English).
+- Decide on your own to scan `~/StudioProjects/` or any other directory.
+- Ask the user "which project to check?".
+- Reply with anything before dispatching the agent (Step 4).

@@ -1,112 +1,113 @@
 ---
-description: Initialize .claude/CLAUDE.md scaffold for the current Android project. Run once before /android-review.
+description: Initialize .claude/CLAUDE.md scaffold (5 fields, 3 auto-detected) for the current Android project. Run once before /android-review.
 ---
 
-# /android-review-init
+# /android-review-init (v2.0)
 
 Create a `.claude/CLAUDE.md` scaffold for the current Android project,
-auto-filling `project-id` and `expected-values` from
-`app/build.gradle(.kts)`. Leaves placeholder TODOs for
-`critical-classes` and `sensitive-files` for you to fill in.
+auto-filling `project-type`, `landing-mechanism`, and `backend-domain`
+from the project's source. Leaves `redirect-method` and
+`accepted-deviations` as TODO for the human.
 
-Also appends `.claude/reports/` to the project's `.gitignore` so
-generated reports don't get accidentally committed.
+Also appends `.claude/reports/` to the project's `.gitignore`.
 
 ## When to use
 
-Run this ONCE per Android project, **before** the first
-`/android-review:android-review`. After it creates the file, edit the
-two TODO sections, then run the full review.
+Run this ONCE per Android project, before the first `/android-review`.
+After it creates the file, edit the `redirect-method` TODO and run the
+full review.
 
 ## Usage
 
 ```
 cd <android-project-root>
 claude
-/android-review:android-review-init
+/android-review-init
 ```
 
 ---
 
-## Procedure
+## Step 1 — Validate Android project root
 
-### Step 1 — Validate Android project root
-
-Use `Glob` to check whether either `app/build.gradle.kts` or
-`app/build.gradle` exists in the current working directory.
-
-If neither exists, your ENTIRE response must be exactly the two lines
-below — verbatim, in English, no preamble, no postamble, no translation,
-no follow-up question:
+Same hard-abort as `/android-review`. If neither
+`app/build.gradle.kts` nor `app/build.gradle` exists, print exactly:
 
 ```
 This is not an Android project root. Expected app/build.gradle(.kts) — not found.
 Did you cd to the project root before launching claude?
 ```
 
-After printing those lines, STOP. Do NOT call any further tools. Do NOT
-attempt to find an Android project elsewhere. Do NOT translate.
+Then STOP.
 
-### Step 2 — Refuse to overwrite an existing CLAUDE.md
+## Step 2 — Refuse to overwrite existing CLAUDE.md
 
-Use `Read` to load `.claude/CLAUDE.md`. If the read succeeds (the file
-exists), print exactly:
+Use `Read` on `.claude/CLAUDE.md`. If the file exists, print exactly:
 
 ```
 .claude/CLAUDE.md already exists — nothing to do.
 
 If you want to regenerate it from scratch, delete the file first:
   rm .claude/CLAUDE.md
-Then run `/android-review:android-review-init` again.
+Then run `/android-review-init` again.
 ```
 
-After printing this, STOP. Do NOT call any further tools.
+Then STOP.
 
-If the read fails with "file not found" (or equivalent), proceed to
-step 3.
+If the read fails with file-not-found, proceed.
 
-### Step 3 — Read gradle values
+## Step 3 — Auto-detect project-type
 
-Use `Read` to load `app/build.gradle.kts` (preferred) or, if `.kts` is
-absent, `app/build.gradle`. Extract these values via regex:
+Use `Read` on `gradle/libs.versions.toml` (preferred) or
+`app/build.gradle.kts`. Look for any of:
+- `OneSignal` (case-insensitive substring)
+- `installreferrer`
+- `play-services-ads-identifier`
 
-- `applicationId`: matches `applicationId\s*=\s*"([^"]+)"` (Kotlin DSL)
-  or `applicationId\s+"([^"]+)"` (Groovy).
-- `namespace`: matches `namespace\s*=\s*"([^"]+)"` or `namespace\s+"([^"]+)"`.
-- `minSdk`: matches `minSdk\s*=\s*(\d+)` or `minSdk\s+(\d+)`.
-- `targetSdk`: matches `targetSdk\s*=\s*(\d+)` or `targetSdk\s+(\d+)`.
+If at least one is present → `project-type = with-attribution`.
+Otherwise → `project-type = no-attribution`.
 
-If any value is not found, leave the corresponding line empty in the
-template (e.g., write `applicationId: ` with nothing after the colon).
-Do NOT fabricate values.
+## Step 4 — Auto-detect landing-mechanism
 
-### Step 4 — Compute project-id
+Use `Glob` and `Grep` on `app/src/main/java/**/*.kt`:
+- Search for `WebView(` or `findViewById<WebView>` or
+  `AndroidView { factory = { WebView`.
+- Search for `CustomTabsIntent`.
 
-Run Bash:
+Decision:
+- Only WebView → `landing-mechanism = webview`.
+- Only CustomTabs → `landing-mechanism = custom-tabs`.
+- Both → leave as TODO with note `# TODO: choose webview or custom-tabs`.
+- Neither → `landing-mechanism = none`.
 
-```
-pwd | xargs basename
-```
+## Step 5 — Auto-detect backend-domain
 
-Take the result. Transform it: lowercase, replace any whitespace and
-underscores with `-`, collapse multiple `-` into one. This is the
-`project-id`.
+Use `Grep` on `app/src/main/java/**/*.kt` (and `**/*.java`) for HTTPS
+URL literals matching common production-domain TLDs:
+`https://[a-z0-9.-]+\.(store|app|io|dev|com)`.
 
-### Step 5 — Create `.claude/` and write CLAUDE.md
+Filter out:
+- `localhost`, `127.0.0.1`, `10.0.2.2`.
+- Common library domains: `firebase.com`, `googleapis.com`,
+  `firebaseapp.com`, `crashlytics.com`, `google.com`, `android.com`,
+  `developer.android.com`.
 
-Run Bash:
+If exactly one unique domain remains → auto-fill. Else → TODO.
 
-```
-mkdir -p .claude
-```
+## Step 6 — Compute project-id
 
-Use the `Write` tool to create `.claude/CLAUDE.md` with this exact
-content (substitute the placeholders with the values from steps 3-4):
+Bash: `pwd | xargs basename`, lowercase, whitespace/underscores → `-`.
+
+## Step 7 — Create .claude/ and write CLAUDE.md
+
+Bash: `mkdir -p .claude`.
+
+Use `Write` to create `.claude/CLAUDE.md` with this content (substitute
+detected values):
 
 ```markdown
 # Project context for Claude Code
 
-(Free-form short description of the project. Optional.)
+(Free-form short description, optional.)
 
 ---
 
@@ -114,113 +115,70 @@ content (substitute the placeholders with the values from steps 3-4):
 
 ## project-id
 
-<PROJECT_ID_FROM_STEP_4>
+<COMPUTED_PROJECT_ID>
 
-## expected-values
+## project-type
 
-applicationId: <FROM_GRADLE_OR_EMPTY>
-namespace: <FROM_GRADLE_OR_EMPTY>
-minSdk: <FROM_GRADLE_OR_EMPTY>
-targetSdk: <FROM_GRADLE_OR_EMPTY>
+<DETECTED_PROJECT_TYPE>
 
-## critical-classes
+## landing-mechanism
 
-# OPTIONAL. Most modern Android projects (Hilt + kotlinx.serialization
-# + Compose + Ktor) DON'T need to fill this in — those libraries ship
-# their own consumer-rules in the AAR and R8 picks them up automatically.
-# Your release build will Just Work with an empty proguard-rules.pro
-# unless your own code does runtime reflection.
-#
-# Fill this section ONLY if your code uses any of:
-#   - Class.forName("com.example.app.SomeClass")
-#   - KClass.simpleName as a map key or registry key
-#   - Custom JSON-serializer that looks up classes by string name
-#   - A library that requires manual -keep rules and doesn't ship
-#     consumer-rules
-#
-# If you do need it: list package globs whose classes must NOT be
-# renamed by R8. The plugin will check that app/proguard-rules.pro
-# covers them.
-# Example:
-# - <com.example.app.crypto.**>
-# - <com.example.app.data.model.**>
+<DETECTED_LANDING_MECHANISM>
 
-## sensitive-files
+## redirect-method
 
-# OPTIONAL. The security agent already scans every Kotlin/Java file in
-# the project for hardcoded secrets, junk-char obfuscation, and plain-
-# string seeds. This section just narrows the focus to specific globs
-# where you KNOW secrets live — useful on large codebases to reduce
-# noise.
-#
-# Leave empty unless your project has dedicated crypto/auth modules
-# whose contents the agent should inspect more thoroughly.
-# Example:
-# - app/src/main/java/<your-package>/crypto/**
-# - app/src/main/java/<your-package>/data/api/**
+# TODO: Choose one of the supported methods used in this project's
+# Privacy Policy → game flow:
+#   - 7.1 webMessageListener
+#   - 7.2 consoleLog
+#   - 7.3 shouldOverrideUrlLoading
+# Plugin verifies ONLY this method's correctness.
+# Leave empty if landing-mechanism = none or custom-tabs.
 
-## accepted-risks
+## backend-domain
 
-# Lines starting with `#` are comments and are IGNORED by the orchestrator.
-# To actually suppress a rule, write a non-commented line:
-#   <rule-id>: <reason why this risk is accepted>
+<DETECTED_BACKEND_DOMAIN_OR_TODO>
 
-## rule-overrides
+## accepted-deviations
 
-# (R3 placeholder — leave empty for M1.)
+# Lines starting with `#` are comments and are IGNORED.
+# To silence a specific functional check, write a non-commented line:
+#   <rule-id>: <reason why this deviation is accepted>
 ```
 
-(The `<PROJECT_ID_FROM_STEP_4>` and `<FROM_GRADLE_OR_EMPTY>` placeholders
-are NOT meant to appear literally in the written file — replace them
-with the actual values you extracted. The `# TODO:` and `# Example:`
-comment lines DO appear literally — they're guidance for the user.)
-
-### Step 6 — Append `.claude/reports/` to project's .gitignore
-
-Run this exact Bash command:
+## Step 8 — Append `.claude/reports/` to project's .gitignore
 
 ```
 grep -qxF '.claude/reports/' .gitignore 2>/dev/null || printf '\n# Claude Code Android Review reports\n.claude/reports/\n' >> .gitignore
 ```
 
-This appends the ignore line ONLY if it's not already present. If
-`.gitignore` does not exist, the `>>` redirection creates it.
+## Step 9 — Print onboarding message
 
-### Step 7 — Print onboarding message
-
-Print EXACTLY this (substitute `<project-id>` with the value computed
-in step 4 — nothing else):
+Print exactly (substitute values):
 
 ```
 ✅ Created .claude/CLAUDE.md for project: <project-id>
 
-Auto-filled from gradle:
-  • project-id, applicationId, namespace, minSdk, targetSdk
+Auto-filled:
+  • project-type: <project-type>
+  • landing-mechanism: <landing-mechanism>
+  • backend-domain: <backend-domain or "TODO">
 
 TODO before running the full review:
-  • Open .claude/CLAUDE.md and fill the two sections marked TODO:
-    - critical-classes (packages that must NOT be renamed by R8)
-    - sensitive-files (where the security agent should look harder)
+  • Open .claude/CLAUDE.md and set `redirect-method` (one of 7.1 / 7.2 / 7.3).
+  • If backend-domain is TODO, set it to the actual production URL.
 
 Also done:
-  • .claude/reports/ added to project's .gitignore (so report files
-    aren't committed accidentally).
+  • .claude/reports/ added to project's .gitignore.
 
 Next step:
-  /android-review:android-review
+  /android-review
 ```
 
-After this message, STOP. Do NOT run the full review. Do NOT call any
-further tools.
-
----
+Then STOP. Do NOT run the full review automatically.
 
 ## Hard constraints
 
-- Do NOT overwrite an existing `.claude/CLAUDE.md`. If it exists, abort
-  per Step 2.
+- Do NOT overwrite an existing `.claude/CLAUDE.md` (Step 2).
 - Do NOT modify any project source files.
-- Do NOT fabricate gradle values. If a regex doesn't match, leave the
-  field empty.
-- Do NOT auto-fill `critical-classes` or `sensitive-files` — those
-  decisions require human judgment.
+- Do NOT fabricate detected values. If detection failed, leave TODO.
