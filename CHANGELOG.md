@@ -4,6 +4,49 @@ All notable changes to the `android-review` plugin will be documented here.
 Format follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/);
 versioning follows [Semver](https://semver.org/).
 
+## [2.1.0] — 2026-05-06
+
+### Added
+
+- New rule `flow/custom-user-agent-required` (severity: **critical**,
+  cannot be silenced via `accepted-deviations`). Verifies that every
+  HTTP client (Ktor / OkHttp / Retrofit / HttpURLConnection) which
+  calls the backend has an explicitly configured User-Agent. Default
+  SDK fingerprints (`Ktor client`, `okhttp/X.Y.Z`) are flagged as a
+  critical bug — backend attribution systems often filter these as
+  bot-traffic. Promoted from a sub-clause of
+  `flow/non-organic-post-required` where it was tagged `suspicious`
+  in v2.0.0; team policy is fixed and exception-free.
+- New rule category `rules/perf/` (severity: **observation** only —
+  never blocks the verdict). Surfaces actionable improvements rather
+  than enforcing contracts:
+  - `perf/startup-blocking` — synchronous blocking ops on the main
+    thread during cold-start (sync SharedPreferences read, AES init,
+    JSON parse, `InstallReferrerClient` without timeout, `sleep`).
+  - `perf/webview-pitfalls` — six common WebView UX/perf pitfalls
+    (cookies cleared each launch, hardware accel off, cache
+    disabled, file-upload without progress indicator, camera
+    permission requested too early, `WebView.destroy` missing).
+  - `perf/runtime-decrypt-cost` — uncached `.dec(...)` calls on the
+    hot path; suggests `by lazy` caching or compile-time decrypt
+    via `BuildConfig`.
+
+### Changed
+
+- `flow/non-organic-post-required` no longer references User-Agent.
+  The UA section was removed from `## Інваріант`, `## Як перевірити`
+  Step 4, and the report template — replaced with a one-line
+  cross-reference to the new dedicated rule.
+- `rules/_schema.md` Categories section documents `perf/` with the
+  observation-only constraint.
+
+### Notes
+
+The plugin now ships **12 functional rules** total: 5 `flow/*`
+(critical), 2 `webview/*`, 1 `crypto/*`, 3 `perf/*` (observation).
+v2.1.0 is a minor bump — no breaking changes; existing CLAUDE.md
+files keep working as-is.
+
 ## [2.0.0] — 2026-05-05
 
 ### BREAKING — full philosophy rewrite

@@ -18,9 +18,9 @@ requires-project-type: with-attribution
 з тілом `{uuid, ref, adId}` (точні ключі узгоджуються з бекендом —
 важлива наявність трьох значень).
 
-User-Agent цього POST'а — кастомний, не дефолтний від Ktor/OkHttp.
-Стандартний підхід команди: `System.getProperty("http.agent") ?:
-"Android"`.
+(User-Agent перевіряється окремо у правилі
+`flow/custom-user-agent-required` — це critical-вимога, винесена
+зі цього rule у v2.1.0.)
 
 ## Як перевірити
 
@@ -34,8 +34,6 @@ User-Agent цього POST'а — кастомний, не дефолтний в
    - значення UUID (із §3.2),
    - referrer string,
    - adId.
-4. Перевірити що User-Agent виставлений явно (не дефолтний). Якщо
-   UA не виставлений — окремий finding `suspicious`.
 
 Якщо POST не існує для non-organic branch'а — критичний баг
 (attribution не працює). Якщо POST існує але не містить одного з
@@ -76,8 +74,8 @@ suspend fun startup() {
 ```
 [flow/non-organic-post-required] SUSPICIOUS    (CRITICAL якщо POST відсутній взагалі)
   <file>:<line>
-  Non-organic branch не виконує POST на backend-домен з {uuid, ref, adId} | POST виконується, але body не містить <value> | User-Agent не виставлений явно.
-  Як виправити: додайте POST-виклик у non-organic branch з тілом, що містить uuid, ref, adId. User-Agent — `System.getProperty("http.agent") ?: "Android"`.
+  Non-organic branch не виконує POST на backend-домен з {uuid, ref, adId} | POST виконується, але body не містить <value>.
+  Як виправити: додайте POST-виклик у non-organic branch з тілом, що містить uuid, ref, adId.
   Див.: docs/specs/2026-05-05-v2-functional-validator-design.md §3.6
 ```
 

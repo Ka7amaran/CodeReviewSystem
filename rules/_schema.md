@@ -53,6 +53,11 @@ requires-project-type: with-attribution | no-attribution   # OPTIONAL; if set, r
   Activity requirements.
 - **`crypto/`** — POST-data encoding pattern (file paths NOT
   pinned; only the pattern).
+- **`perf/`** — performance and pitfall observations
+  (`severity: observation` only). Surfaces actionable
+  improvements: startup-blocking patterns, WebView UX/perf
+  pitfalls, runtime-decrypt cost. NEVER blocks the verdict —
+  these are advisory, not contracts.
 
 Style/security/obfuscation categories from v1.x are deleted —
 they don't map to functional flows.
