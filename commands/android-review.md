@@ -13,10 +13,12 @@ directory.
    `app/build.gradle(.kts)`).
 2. Auto-detects plugin root (Claude Code 2.1.x doesn't expose
    `${CLAUDE_PLUGIN_ROOT}` to slash commands).
-3. Reads `.claude/CLAUDE.md` (5 fields: project-type, landing-mechanism,
-   redirect-method, backend-domain, accepted-deviations).
+3. Reads `.claude/CLAUDE.md` (2 fields since v2.2.0: project-type,
+   accepted-deviations). landing-mechanism, redirect-method, and
+   backend-domain are detected from code automatically.
 4. Dispatches the `functional-validator` sub-agent. The agent applies
-   8 functional rules via dataflow tracing.
+   functional rules via dataflow tracing (Stage 0 detection +
+   per-rule verification).
 5. Saves the report as `.claude/reports/<project-id>-android-review.md`,
    archiving the previous one to `archive/<project-id>-<timestamp>.md`.
 6. Prints a compact summary in the terminal.
@@ -97,13 +99,17 @@ Use Bash `date "+%Y-%m-%d %H:%M"` for the report date (capture as
 
 ## Step 6 — Compose the final report (Ukrainian)
 
-Take the agent's output and wrap it in the report skeleton:
+Extract `landing-mechanism`, `redirect-method`, `backend-domain` from
+the agent's output header (the `**landing-mechanism:**`,
+`**redirect-method:**`, `**backend-domain:**` lines — these are
+**detected**, not declared). Then wrap the agent's output in the
+report skeleton:
 
 ```
 # Android Review — <project-id>
 
 **Дата:** <REPORT_DATE>  •  **Версія плагіна:** <plugin-version>
-**Тип проєкту:** <project-type>  •  **Лендинг:** <landing-mechanism>  •  **Метод редіректу:** <redirect-method or "n/a">
+**Тип проєкту:** <project-type>  •  **Лендинг:** <landing-mechanism> *(виявлено)*  •  **Метод редіректу:** <redirect-method or "n/a"> *(виявлено)*
 
 ## Вердикт: <verdict>
 
@@ -143,7 +149,7 @@ Print ONLY this compact summary as your final assistant message:
 # Android Review — <project-id>
 
 **Дата:** <REPORT_DATE>  •  **Плагін:** <plugin-version>
-**Тип:** <project-type>  •  **Лендинг:** <landing-mechanism>  •  **Редірект:** <redirect-method or "n/a">
+**Тип:** <project-type>  •  **Лендинг:** <landing-mechanism> *(виявлено)*  •  **Редірект:** <redirect-method or "n/a"> *(виявлено)*
 
 **Вердикт:** <verdict>
 

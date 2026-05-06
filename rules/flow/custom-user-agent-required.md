@@ -13,8 +13,8 @@ requires-project-type: with-attribution
 
 ## Інваріант
 
-Кожен HTTP-клієнт у проєкті, який викликає бекенд (зокрема POST на
-`backend-domain` з attribution-payload'ом), має мати **явно виставлений
+Кожен HTTP-клієнт у проєкті, який викликає бекенд (зокрема
+attribution-POST у non-organic branch'і), має мати **явно виставлений
 User-Agent**. Дефолтний UA від Ktor (`Ktor client`) або OkHttp
 (`okhttp/X.Y.Z`) — критичний баг.
 

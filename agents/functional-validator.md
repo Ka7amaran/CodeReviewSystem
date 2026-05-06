@@ -37,19 +37,67 @@ Skip files starting with `_` (those are schema/template).
 
 ### Step 2 — Read project context
 
-Read `.claude/CLAUDE.md` from the project root. Parse:
+Read `.claude/CLAUDE.md` from the project root. Parse only **two**
+fields (v2.2.0 — reduced from 5 to 2; the rest is detected from code):
 
 - `## project-type` — `with-attribution` or `no-attribution`.
-- `## landing-mechanism` — `webview`, `custom-tabs`, or `none`.
-- `## redirect-method` — `7.1` / `7.2` / `7.3` (or empty).
-- `## backend-domain` — the URL.
 - `## accepted-deviations` — lines of form `<rule-id>: <reason>`
   (lines starting with `#` are comments, ignored).
 
 If `.claude/CLAUDE.md` is missing — proceed with `project-type =
-with-attribution` (default), `landing-mechanism = webview`,
-`redirect-method = `, `backend-domain = `, `accepted-deviations = ∅`.
-Note in the report header.
+with-attribution` (default) and `accepted-deviations = ∅`. Note in
+the report header.
+
+### Step 2b — Stage 0 detection (compute landing-mechanism, redirect-method, backend-domain from code)
+
+These three values are NOT read from CLAUDE.md anymore. The agent
+detects them once, here, and shares with rules below.
+
+**`landing-mechanism`** — search `app/src/main/java/**/*.{kt,java}`
+for:
+- WebView markers: `WebView(`, `findViewById<WebView>`,
+  `AndroidView { factory = { WebView`.
+- CustomTabs markers: `CustomTabsIntent.Builder()`,
+  `CustomTabsIntent`.
+
+Decision:
+- WebView markers found, CustomTabs not → `landing-mechanism = webview`.
+- CustomTabs found, WebView not → `landing-mechanism = custom-tabs`.
+- Both found → `landing-mechanism = both` (note in report header;
+  rules treat WebView as primary).
+- Neither → `landing-mechanism = none` (rules under `webview/` and
+  `flow/redirect-method-correctness` skip with reason
+  "no WebView/CustomTabs detected in code").
+
+**`redirect-method`** — search `app/src/main/java/**/*.{kt,java}` for
+the three signatures:
+- 7.1: `addWebMessageListener` (or `WebMessageListener`).
+- 7.2: `override fun onConsoleMessage` inside a class extending
+  `WebChromeClient`.
+- 7.3: `override fun shouldOverrideUrlLoading` AND a custom-scheme
+  string literal nearby (`app://`, `game://`, project-specific scheme).
+
+Decision (consumed by `flow/redirect-method-correctness`):
+- Exactly 1 found → that's the method, verify it.
+- 0 found AND `landing-mechanism ∈ {webview, both}` → CRITICAL
+  (no Privacy Policy → game redirect implemented).
+- 2+ found → SUSPICIOUS (redundant code; pick one).
+- `landing-mechanism = custom-tabs | none` → skip rule entirely.
+
+**`backend-domain`** — derived as side-effect of
+`flow/non-organic-post-required` dataflow. The first POST endpoint
+URL discovered in the non-organic branch IS the backend-domain.
+- Literal URL (e.g., `"https://x.store"`) → use that.
+- Decrypted URL (passes through `.dec(...)`, XOR/AES at runtime) →
+  show as `"<encrypted-at-rest>"` in report header (no finding —
+  this is an expected team pattern).
+- Not found at all → `(none)`. Other rules that depended on it
+  (e.g., `crypto/post-data-encoding-pattern`) operate on whatever
+  POST endpoint they can find.
+
+Stage 0 outputs are stored as in-memory variables for use by rules
+below. They are NOT errors on their own — they are **inputs** to
+the rules.
 
 ### Step 3 — Filter rules
 
@@ -116,9 +164,9 @@ final report)
 
 **CLAUDE.md:** found ✓ | missing ⚠️ | partially parseable ⚠️
 **project-type:** with-attribution | no-attribution
-**landing-mechanism:** webview | custom-tabs | none
-**redirect-method:** 7.X | (none)
-**backend-domain:** <URL or "(none)">
+**landing-mechanism:** webview | custom-tabs | both | none  *(detected)*
+**redirect-method:** 7.X | (none) | (multiple)  *(detected)*
+**backend-domain:** <URL> | <encrypted-at-rest> | (none)  *(detected)*
 
 ### Критичні
 (finding blocks for critical-severity, or "(відсутні)")

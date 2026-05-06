@@ -12,9 +12,11 @@ since: "2.0.0"
 
 ## Інваріант
 
-Якщо у проєкті використовується WebView (`landing-mechanism = webview`),
-кожен WebView-instance має містити канонічний preset налаштувань
-команди (§3.9 spec'у):
+Якщо у проєкті виявлено хоча б один WebView-instance (Stage 0
+detection: `landing-mechanism ∈ {webview, both}`), кожен такий
+WebView-instance має містити канонічний preset налаштувань команди
+(§3.9 spec'у). Якщо WebView у коді немає взагалі
+(`landing-mechanism ∈ {custom-tabs, none}`) — правило skip'ається.
 
 - `mixedContentMode = 0`
 - `javaScriptEnabled = true`

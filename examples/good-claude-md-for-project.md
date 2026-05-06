@@ -17,18 +17,6 @@ example-juicer
 
 with-attribution
 
-## landing-mechanism
-
-webview
-
-## redirect-method
-
-7.1 webMessageListener
-
-## backend-domain
-
-https://example.store
-
 ## accepted-deviations
 
 # Lines starting with `#` are comments and are IGNORED.
@@ -36,3 +24,7 @@ https://example.store
 #   <rule-id>: <reason>
 # Example (only fires if a real deviation exists):
 # webview/config-completeness: project intentionally uses minimal WebView for read-only landing page
+#
+# Note: as of v2.2.0, landing-mechanism / redirect-method /
+# backend-domain are no longer declared here — the validator detects
+# them from code automatically.

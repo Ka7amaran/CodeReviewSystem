@@ -47,8 +47,9 @@ launcher Activity's `onCreate`, перший Composable у NavGraph) і
      АБО SDK типу AppsFlyer/Tenjin/Adjust.
    - adId: будь-який виклик до `AdvertisingIdClient` АБО
      еквівалент SDK.
-   - Domain request: будь-який HTTP-виклик до URL із
-     `backend-domain` (з CLAUDE.md).
+   - Domain request: будь-який HTTP-виклик до зовнішнього бекенду
+     (URL детектується з коду — літеральний або encrypted-at-rest;
+     зашифрований URL — очікуваний team-patten, не finding).
    - Routing: видимий decision-point що веде або у Game-екран,
      або у WebView/CustomTabs.
 4. Кожен пропущений крок = окрема знахідка `suspicious`-severity.

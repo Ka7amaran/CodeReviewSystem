@@ -1,21 +1,26 @@
 ---
-description: Initialize .claude/CLAUDE.md scaffold (5 fields, 3 auto-detected) for the current Android project. Run once before /android-review.
+description: Initialize .claude/CLAUDE.md scaffold (2 fields, 1 auto-detected) for the current Android project. Run once before /android-review.
 ---
 
-# /android-review-init (v2.0)
+# /android-review-init (v2.2)
 
 Create a `.claude/CLAUDE.md` scaffold for the current Android project,
-auto-filling `project-type`, `landing-mechanism`, and `backend-domain`
-from the project's source. Leaves `redirect-method` and
-`accepted-deviations` as TODO for the human.
+auto-filling `project-type` from the project's source. Leaves
+`accepted-deviations` empty (filled only when needed to silence a
+specific finding).
+
+The other three values that v2.0/v2.1 required (`landing-mechanism`,
+`redirect-method`, `backend-domain`) are now **detected from code at
+review time** by the validator's Stage 0 — no manual declaration
+needed.
 
 Also appends `.claude/reports/` to the project's `.gitignore`.
 
 ## When to use
 
 Run this ONCE per Android project, before the first `/android-review`.
-After it creates the file, edit the `redirect-method` TODO and run the
-full review.
+After it creates the file, you can run `/android-review` immediately —
+no further editing is needed in the typical case.
 
 ## Usage
 
@@ -66,38 +71,11 @@ Use `Read` on `gradle/libs.versions.toml` (preferred) or
 If at least one is present → `project-type = with-attribution`.
 Otherwise → `project-type = no-attribution`.
 
-## Step 4 — Auto-detect landing-mechanism
-
-Use `Glob` and `Grep` on `app/src/main/java/**/*.kt`:
-- Search for `WebView(` or `findViewById<WebView>` or
-  `AndroidView { factory = { WebView`.
-- Search for `CustomTabsIntent`.
-
-Decision:
-- Only WebView → `landing-mechanism = webview`.
-- Only CustomTabs → `landing-mechanism = custom-tabs`.
-- Both → leave as TODO with note `# TODO: choose webview or custom-tabs`.
-- Neither → `landing-mechanism = none`.
-
-## Step 5 — Auto-detect backend-domain
-
-Use `Grep` on `app/src/main/java/**/*.kt` (and `**/*.java`) for HTTPS
-URL literals matching common production-domain TLDs:
-`https://[a-z0-9.-]+\.(store|app|io|dev|com)`.
-
-Filter out:
-- `localhost`, `127.0.0.1`, `10.0.2.2`.
-- Common library domains: `firebase.com`, `googleapis.com`,
-  `firebaseapp.com`, `crashlytics.com`, `google.com`, `android.com`,
-  `developer.android.com`.
-
-If exactly one unique domain remains → auto-fill. Else → TODO.
-
-## Step 6 — Compute project-id
+## Step 4 — Compute project-id
 
 Bash: `pwd | xargs basename`, lowercase, whitespace/underscores → `-`.
 
-## Step 7 — Create .claude/ and write CLAUDE.md
+## Step 5 — Create .claude/ and write CLAUDE.md
 
 Bash: `mkdir -p .claude`.
 
@@ -121,38 +99,24 @@ detected values):
 
 <DETECTED_PROJECT_TYPE>
 
-## landing-mechanism
-
-<DETECTED_LANDING_MECHANISM>
-
-## redirect-method
-
-# TODO: Choose one of the supported methods used in this project's
-# Privacy Policy → game flow:
-#   - 7.1 webMessageListener
-#   - 7.2 consoleLog
-#   - 7.3 shouldOverrideUrlLoading
-# Plugin verifies ONLY this method's correctness.
-# Leave empty if landing-mechanism = none or custom-tabs.
-
-## backend-domain
-
-<DETECTED_BACKEND_DOMAIN_OR_TODO>
-
 ## accepted-deviations
 
 # Lines starting with `#` are comments and are IGNORED.
 # To silence a specific functional check, write a non-commented line:
 #   <rule-id>: <reason why this deviation is accepted>
+#
+# Note: as of v2.2.0, landing-mechanism / redirect-method /
+# backend-domain are no longer declared here — the validator detects
+# them from your code automatically.
 ```
 
-## Step 8 — Append `.claude/reports/` to project's .gitignore
+## Step 6 — Append `.claude/reports/` to project's .gitignore
 
 ```
 grep -qxF '.claude/reports/' .gitignore 2>/dev/null || printf '\n# Claude Code Android Review reports\n.claude/reports/\n' >> .gitignore
 ```
 
-## Step 9 — Print onboarding message
+## Step 7 — Print onboarding message
 
 Print exactly (substitute values):
 
@@ -161,12 +125,9 @@ Print exactly (substitute values):
 
 Auto-filled:
   • project-type: <project-type>
-  • landing-mechanism: <landing-mechanism>
-  • backend-domain: <backend-domain or "TODO">
 
-TODO before running the full review:
-  • Open .claude/CLAUDE.md and set `redirect-method` (one of 7.1 / 7.2 / 7.3).
-  • If backend-domain is TODO, set it to the actual production URL.
+(landing-mechanism, redirect-method, backend-domain are detected
+ from your code at review time — no manual declaration needed.)
 
 Also done:
   • .claude/reports/ added to project's .gitignore.
@@ -181,4 +142,5 @@ Then STOP. Do NOT run the full review automatically.
 
 - Do NOT overwrite an existing `.claude/CLAUDE.md` (Step 2).
 - Do NOT modify any project source files.
-- Do NOT fabricate detected values. If detection failed, leave TODO.
+- Do NOT fabricate the detected project-type. If detection is
+  ambiguous, default to `with-attribution` (more inclusive).

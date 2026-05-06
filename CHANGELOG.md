@@ -4,6 +4,73 @@ All notable changes to the `android-review` plugin will be documented here.
 Format follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/);
 versioning follows [Semver](https://semver.org/).
 
+## [2.2.0] — 2026-05-06
+
+### Changed — CLAUDE.md schema collapsed from 5 fields to 2
+
+Three of the five v2.0/v2.1 CLAUDE.md fields are now **detected from
+code automatically** by the validator's new **Stage 0 detection**
+phase:
+
+- `landing-mechanism` ← detected via `WebView(` /
+  `AndroidView { factory = { WebView` vs `CustomTabsIntent` markers in
+  `app/src/main/java/**/*.{kt,java}`.
+- `redirect-method` ← detected via three signatures: `addWebMessageListener`
+  (7.1), `onConsoleMessage` override on `WebChromeClient` (7.2),
+  `shouldOverrideUrlLoading` + custom-scheme literal (7.3).
+- `backend-domain` ← discovered as the POST endpoint URL in the
+  non-organic branch (literal URL OR `<encrypted-at-rest>` for the
+  team's standard runtime-decrypt pattern).
+
+The remaining two fields are user-controlled and stay manual:
+`project-type` (auto-filled at init) and `accepted-deviations`
+(empty by default, only edit when silencing a finding).
+
+This eliminates two recurring false-positives in v2.1.0 reports:
+`flow/redirect-method-correctness` complaining about empty
+`redirect-method` declaration when the implementation was clearly
+present in code, and `flow/non-organic-post-required` complaining
+about empty `backend-domain` when the URL was encrypted at rest (a
+deliberate team pattern).
+
+### Changed — `flow/redirect-method-correctness` severity escalated
+
+Promoted from `suspicious` to `critical` and rewritten:
+- 0 methods detected (with WebView present) → CRITICAL — Privacy
+  Policy cannot send the user into the game.
+- 2+ methods detected → SUSPICIOUS — redundant code, pick one.
+- Exactly 1 detected → verify its correctness as before.
+
+### Changed — `flow/non-organic-post-required` decoupled from backend-domain
+
+The rule no longer cross-checks the POST URL against any declared
+domain. Detection of a POST in the non-organic branch with a body
+containing `{uuid, ref, adId}` is sufficient. Encrypted-at-rest URLs
+are an expected team pattern and never trigger findings.
+
+### Changed — `/android-review-init` simplified
+
+Steps 4 and 5 (autodetect of `landing-mechanism` and `backend-domain`)
+removed. Init now only auto-fills `project-type` and writes the
+2-field scaffold. Faster init, fewer fields to read.
+
+### Migration
+
+Existing v2.0/v2.1 `.claude/CLAUDE.md` files keep working — the
+validator simply ignores the three obsolete sections. To trim them,
+delete `## landing-mechanism`, `## redirect-method`, and
+`## backend-domain` blocks manually, or regenerate via:
+
+```
+rm .claude/CLAUDE.md && /android-review-init
+```
+
+### Notes
+
+The plugin still ships **12 functional rules** (5 `flow/*`, 2
+`webview/*`, 1 `crypto/*`, 3 `perf/*`). No rules added or removed in
+v2.2 — only the contract surface shrank.
+
 ## [2.1.0] — 2026-05-06
 
 ### Added

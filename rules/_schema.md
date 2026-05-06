@@ -67,8 +67,8 @@ they don't map to functional flows.
 1. Discover all `*.md` files in `rules/<category>/` (skip files
    starting with `_`).
 2. Read project's `.claude/CLAUDE.md` for `project-type` and
-   `accepted-deviations` (and `redirect-method` for the redirect
-   rule).
+   `accepted-deviations` (only 2 fields since v2.2.0 — the rest is
+   detected from code via Stage 0).
 3. For each rule:
    - If `requires-project-type` is set and doesn't match → skip,
      surface under "Пропущені перевірки" with reason
