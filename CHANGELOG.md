@@ -4,6 +4,48 @@ All notable changes to the `android-review` plugin will be documented here.
 Format follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/);
 versioning follows [Semver](https://semver.org/).
 
+## [2.4.0] — 2026-05-06
+
+### Added
+
+- New rule `flow/post-redirect-no-return` (severity: **critical**).
+  Verifies that after the Privacy Policy → game redirect, the
+  back-stack is fully cleared so the user cannot navigate back to
+  the WebView landing via the BACK button / system back-gesture.
+  Two acceptable forms: `navController.navigate(...)` with
+  `popUpTo(graph) { inclusive = true }` (or `popUpTo(0)`), or
+  `startActivity(GameActivity)` followed by `finish()`. Anything
+  that leaves the WebView route in the back-stack → CRITICAL.
+  Allowed via `accepted-deviations` only if the game UI provides a
+  dedicated "open Privacy Policy again" button.
+
+### Fixed
+
+- Functional-validator agent now FORBIDDEN from emitting "please
+  confirm" / "varto perekonatys'" / "verify with the team" findings.
+  Such findings shifted judgment back to the human even when the
+  rule body already specified a concrete contract. New hard
+  constraint: every finding must describe a concrete violation; if
+  the value matches the rule's canonical → silent pass.
+- `webview/config-completeness` makes the canonical
+  `mixedContentMode = 0` explicit: value `0` (or
+  `MIXED_CONTENT_ALWAYS_ALLOW` constant) → silent pass. Values `1`
+  / `2` → SUSPICIOUS with concrete diff. Missing → SUSPICIOUS as
+  before.
+- `webview/activity-fullscreen-orientation` no longer speculates
+  about hypothetical orientation-lock leakage when the user
+  "theoretically returns from game to WebView". That return path is
+  itself forbidden by the new `flow/post-redirect-no-return` rule —
+  if the back-stack is correctly cleared, leakage is impossible by
+  construction. The rule now stays focused on its real contract:
+  manifest `screenOrientation` and top-status-bar visibility.
+
+### Notes
+
+The plugin now ships **13 functional rules**: 6 `flow/*`, 2
+`webview/*`, 1 `crypto/*`, 3 `perf/*` (+ 1 new flow rule from this
+release).
+
 ## [2.3.0] — 2026-05-06
 
 ### Changed — `webview/config-completeness` evidence-based rewrite

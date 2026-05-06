@@ -217,3 +217,12 @@ on the way out.
 - **Single Task call**. You are dispatched once by the slash command
   and run to completion. Do not attempt to dispatch further sub-agents
   (Task is unavailable inside sub-agents in Claude Code 2.1.x).
+- **No "please confirm" findings**. Every finding must describe a
+  concrete violation of a rule's invariant. Findings of the form
+  "value is X — please confirm that's intentional", "varto
+  perekonatys'", "verify with the team", "could be intentional but
+  flagging anyway" are FORBIDDEN. If the value matches the rule's
+  canonical/expected value → pass silently. If it doesn't → emit a
+  concrete finding ("value is X, canonical is Y"). Never offload
+  judgment to the human via a confirmation request — the rule body
+  IS the contract.

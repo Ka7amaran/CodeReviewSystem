@@ -39,6 +39,19 @@ Activity, що містить WebView або відкриває CustomTabs, ма
      `show()`.
 4. Кожне порушення — окремий finding `suspicious`.
 
+### Що НЕ flag'ити
+
+- **Runtime `requestedOrientation` setters у composable'ах**
+  (`LocalActivity.current.requestedOrientation = ...` під час рендеру
+  game-екрану як `PORTRAIT`, під час WebView-екрану як
+  `UNSPECIFIED`) — це стандартний single-Activity Compose-патерн
+  команди. Теоретичний "orientation lock leakage" коли юзер
+  повертається з гри назад на WebView — НЕ є предметом цього
+  правила, бо такий return-сценарій сам по собі заборонений
+  (див. `flow/post-redirect-no-return`). Якщо back-stack правильно
+  очищений після redirect, повернення на WebView неможливе → leakage
+  неможливий.
+
 ## Як виглядає поломка
 
 ```xml

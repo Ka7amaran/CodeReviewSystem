@@ -25,8 +25,15 @@ none}`) — правило skip'ається.
 
 ### Базовий набір (вимагається завжди)
 
-- `mixedContentMode = 0` — без цього https-сторінки з http-ресурсами
-  блокуються.
+- `mixedContentMode = 0` (≡ `WebSettings.MIXED_CONTENT_ALWAYS_ALLOW`) —
+  команда canonical preset вимагає саме `0`. Це свідомий вибір
+  (deals with legacy http-ресурсами на landing-сторінках). Якщо
+  значення `0` (або `MIXED_CONTENT_ALWAYS_ALLOW` константа) — pass
+  silently. Якщо значення `1` (`NEVER_ALLOW`) або `2`
+  (`COMPATIBILITY_MODE`) — finding `suspicious` "значення X
+  відрізняється від canonical 0". Якщо взагалі не встановлено
+  (залишається API default = 1) — finding `suspicious` "не
+  встановлено явно".
 - `javaScriptEnabled = true` — будь-який сучасний веб без JS не працює.
 - `domStorageEnabled = true` — багато сайтів вимагають localStorage.
 - `webViewClient` встановлений — інакше будь-який redirect відкриває
