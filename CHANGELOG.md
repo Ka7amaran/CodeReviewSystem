@@ -4,6 +4,57 @@ All notable changes to the `android-review` plugin will be documented here.
 Format follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/);
 versioning follows [Semver](https://semver.org/).
 
+## [2.3.0] — 2026-05-06
+
+### Changed — `webview/config-completeness` evidence-based rewrite
+
+The 20+ item canonical preset is split into three groups:
+
+**Core (always required)** — flag SUSPICIOUS if missing:
+- `mixedContentMode = 0`, `javaScriptEnabled`, `domStorageEnabled`,
+  `webViewClient`, `webChromeClient`, cookie acceptance
+  (`setAcceptCookie` + `setAcceptThirdPartyCookies`).
+
+**Use-case-conditional** — flag SUSPICIOUS only when manifest
+provides evidence the use-case applies:
+- `onShowFileChooser` override → required only when
+  `AndroidManifest.xml` declares `CAMERA`, `READ_MEDIA_IMAGES`, or
+  `READ_EXTERNAL_STORAGE` (project actually allows file/photo upload
+  through WebView).
+- `onPermissionRequest` override → required only when manifest
+  declares `CAMERA` or `RECORD_AUDIO`.
+
+**Removed from rule** — no Android-side detection possible (depend on
+backend HTML, not Android code) or already covered by other rules:
+- `setDownloadListener` — depends on whether landing page exposes
+  downloadable resources (PDF, APK-update). QA-test responsibility.
+- `onShowCustomView` — depends on whether landing page uses HTML5
+  fullscreen video.
+- `setSupportMultipleWindows(true)` — depends on whether HTML uses
+  `target="_blank"` / `window.open(...)`.
+- `cacheMode = LOAD_DEFAULT`, `setLayerType(LAYER_TYPE_HARDWARE)` —
+  performance-related, already covered by `perf/webview-pitfalls`.
+- `loadsImagesAutomatically`, `useWideViewPort`, `loadWithOverviewMode`,
+  `allowFileAccess`, `allowContentAccess`, `builtInZoomControls`,
+  `displayZoomControls`, `javaScriptCanOpenWindowsAutomatically`,
+  `databaseEnabled`, `importantForAutofill` — UX choices, default
+  values, or deprecated. Not flagged.
+
+### Why
+
+In v2.0–v2.2 every missing preset item produced a SUSPICIOUS finding
+regardless of whether the project actually used the corresponding
+feature. Reports for upload-only WebView projects were noisy with
+download-related findings (`setDownloadListener` etc.) that weren't
+real issues. The evidence-based rewrite drops those entirely or
+gates them on manifest signals.
+
+### Notes
+
+The plugin still ships **12 functional rules**. No rules added or
+removed in v2.3 — only the surface of `webview/config-completeness`
+shrank.
+
 ## [2.2.0] — 2026-05-06
 
 ### Changed — CLAUDE.md schema collapsed from 5 fields to 2
