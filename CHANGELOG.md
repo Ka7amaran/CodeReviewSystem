@@ -4,6 +4,46 @@ All notable changes to the `android-review` plugin will be documented here.
 Format follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/);
 versioning follows [Semver](https://semver.org/).
 
+## [2.5.0] — 2026-05-07
+
+### Added
+
+- New rule `crypto/string-literal-encoding-coverage` (severity:
+  **critical**). Verifies that if the project uses any
+  string-obfuscation mechanism (lspanoid `@LSParanoid`, paranoid
+  `@Obfuscate`, stringfog, runtime `.dec(...)`, or equivalent), it
+  is applied to **every** file with non-trivial string literals
+  under `app/src/main/java/**/`. Partial coverage = critical bug:
+  unprotected strings are plain-readable in a decompiled APK.
+  Detection has two stages: (1) confirm the project actually
+  declares obfuscation via dependency / annotation / runtime-decrypt
+  signal, otherwise skip the rule entirely; (2) per-file coverage
+  check with a whitelist for log tags, annotation arguments,
+  HTTP-method constants, format placeholders, and test code.
+  One finding per uncovered file, with first 3-5 literal previews.
+  Allowed via `accepted-deviations` per-file (e.g., debug helpers
+  R8-stripped in release).
+
+### Fixed
+
+- Functional-validator agent grouped findings into report sections
+  (`### Критичні` / `### Підозрілі` / `### Спостереження`) using the
+  rule's frontmatter `severity:` field instead of the actual emitted
+  finding tag. As a result, a SUSPICIOUS finding from a rule with
+  `severity: critical` in frontmatter (e.g., `flow/redirect-method-correctness`
+  emitting SUSPICIOUS for the 2+ methods / placeholder-message case)
+  ended up under `### Критичні` while `### Підозрілі` showed
+  `(відсутні)`. Sectioning is now explicitly routed by the literal
+  tag on the finding line (`[rule-id] CRITICAL/SUSPICIOUS/OBSERVATION`),
+  with the rule's frontmatter treated as the maximum severity only.
+  New hard constraint added to prevent regression.
+
+### Notes
+
+The plugin now ships **14 functional rules**: 6 `flow/*`, 2
+`webview/*`, 2 `crypto/*`, 3 `perf/*` (+ 1 new crypto rule from this
+release).
+
 ## [2.4.0] — 2026-05-06
 
 ### Added

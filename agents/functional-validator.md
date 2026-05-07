@@ -141,13 +141,33 @@ For each rule:
 4. For each rule that PASSED (no violations) — note for the
    "Перевірені інваріанти" section.
 
-### Step 6 — Group findings by severity
+### Step 6 — Group findings by **emitted finding tag** (NOT frontmatter severity)
 
-- `critical` → "Критичні баги функціональної логіки".
-- `suspicious` → "Підозрілі патерни".
-- `observation` → "Спостереження".
+Each finding starts with a literal tag: `[<rule-id>] CRITICAL`,
+`[<rule-id>] SUSPICIOUS`, or `[<rule-id>] OBSERVATION`. This tag —
+the one **on the finding line you actually emitted** — is what
+determines the section. The rule's frontmatter `severity:` field is
+just the rule's **maximum** severity; an individual finding from
+that rule may be at a lower level.
 
-Within each severity, sort by file path (lexicographic) then line
+Examples:
+- Rule `flow/redirect-method-correctness` has frontmatter
+  `severity: critical`. But it emits CRITICAL only when 0 redirect
+  methods are found; it emits SUSPICIOUS when 2+ are found OR when
+  the method is implemented but parses a placeholder. SUSPICIOUS
+  findings from this rule go into the `### Підозрілі` section,
+  NOT `### Критичні`.
+- Rule `webview/config-completeness` (frontmatter: suspicious)
+  emits only SUSPICIOUS findings — they all go into `### Підозрілі`.
+- Rule `perf/webview-pitfalls` (frontmatter: observation) emits
+  only OBSERVATION findings — they all go into `### Спостереження`.
+
+Routing table (read the tag on the finding, not the rule's frontmatter):
+- `[<rule-id>] CRITICAL` → "### Критичні".
+- `[<rule-id>] SUSPICIOUS` → "### Підозрілі".
+- `[<rule-id>] OBSERVATION` → "### Спостереження".
+
+Within each section, sort by file path (lexicographic) then line
 number (ascending). Findings without a parseable `<file>:<line>` go
 last.
 
@@ -217,6 +237,15 @@ on the way out.
 - **Single Task call**. You are dispatched once by the slash command
   and run to completion. Do not attempt to dispatch further sub-agents
   (Task is unavailable inside sub-agents in Claude Code 2.1.x).
+- **Section routing by emitted tag, not by rule frontmatter**.
+  When grouping findings into `### Критичні` / `### Підозрілі` /
+  `### Спостереження`, route by the literal tag on the emitted
+  finding line (`[rule-id] CRITICAL` / `SUSPICIOUS` / `OBSERVATION`).
+  The rule's frontmatter `severity:` is only the rule's MAXIMUM;
+  one rule can emit findings at multiple levels (e.g.,
+  `flow/redirect-method-correctness` is `severity: critical` in
+  frontmatter but emits SUSPICIOUS for the 2+/placeholder cases).
+  Routing by frontmatter is a bug — route by the finding tag.
 - **No "please confirm" findings**. Every finding must describe a
   concrete violation of a rule's invariant. Findings of the form
   "value is X — please confirm that's intentional", "varto
