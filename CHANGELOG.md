@@ -4,6 +4,31 @@ All notable changes to the `android-review` plugin will be documented here.
 Format follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/);
 versioning follows [Semver](https://semver.org/).
 
+## [2.6.0] — 2026-05-12
+
+### Added
+
+- New rule `webview/loadurl-after-initial` (severity:
+  **observation**). Flags programmatic `loadUrl(httpUrl)` calls
+  that occur outside the WebView's lifecycle-init block
+  (`onCreate` / `onViewCreated` / Compose `factory` /
+  `LaunchedEffect(Unit)`). Raw `loadUrl` count would be noisy
+  (legit patterns include `loadUrl("javascript:...")` for JS
+  injection, `loadUrl("about:blank")` before `destroy()`, and
+  retry-on-error inside `webViewClient` callbacks); instead this
+  rule narrowly targets the architectural smell of driving WebView
+  navigation from the Android side (button handlers, LiveData
+  observers, coroutines) rather than letting `shouldOverrideUrlLoading`
+  intercept web-content clicks. Per-callsite granularity. Allowed
+  via `accepted-deviations` for hybrid-architecture cases where
+  native UI legitimately controls the next page.
+
+### Notes
+
+The plugin now ships **15 functional rules**: 6 `flow/*`, 3
+`webview/*`, 2 `crypto/*`, 3 `perf/*` (+ 1 new webview rule from
+this release).
+
 ## [2.5.0] — 2026-05-07
 
 ### Added
