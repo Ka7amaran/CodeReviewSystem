@@ -4,6 +4,71 @@ All notable changes to the `android-review` plugin will be documented here.
 Format follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/);
 versioning follows [Semver](https://semver.org/).
 
+## [2.6.1] — 2026-05-15
+
+### Fixed
+
+- `crypto/string-literal-encoding-coverage`: removed misleading
+  guidance that `BuildConfig` is a standalone fix for uncovered
+  string literals. Gradle inlines `buildConfigField` values as
+  `public static final String` constants in the generated
+  `BuildConfig.class`, which `apktool`/`jadx` read in plaintext —
+  so `BuildConfig` alone does **not** satisfy the rule's invariant.
+  Updated the "Як перевірити" mechanism list and the
+  "Як виправити" suggestion to: (1) compile-time obfuscator
+  (`@LSParanoid` etc.), (2) runtime decrypt blob, or (3) **NDK
+  secret** (literal lives in `.so`, invisible to Java/Kotlin
+  decompilers); plus an advanced Play Integrity / server-issued
+  key variant for high-value secrets. `BuildConfig` clarified as
+  source-control hygiene only — useful only in combination with
+  one of the three mechanisms.
+
+- `webview/activity-fullscreen-orientation`: rule's contract for
+  the top status bar was "always visible", which false-positived
+  the immersive-mode pattern `hide(systemBars())` combined with
+  `systemBarsBehavior = BEHAVIOR_SHOW_TRANSIENT_BARS_BY_SWIPE`
+  (status bar hidden but user can swipe from the top edge to
+  reveal it transiently — a canonical Android immersive pattern).
+  Contract clarified to: "status bar **accessible** to the user —
+  either statically visible OR transient-revealable via swipe".
+  Detection now distinguishes `BEHAVIOR_DEFAULT` (no swipe access
+  → flag) from `BEHAVIOR_SHOW_TRANSIENT_BARS_BY_SWIPE` (swipe
+  access → pass). Both correct shapes documented in
+  "Як виглядає правильно".
+
+- `flow/redirect-method-correctness` + functional-validator agent
+  Stage 0 detection: 7.3 detection (`shouldOverrideUrlLoading` +
+  scheme literal) false-positived deep-link routers. Many
+  WebView-based projects override `shouldOverrideUrlLoading` purely
+  to route external-app schemes (`mailto:`, `tel:`, `whatsapp://`,
+  `viber://`, `tg://`, `intent://`, `market://`, `geo:`, banking
+  `dia://` etc.) via `Intent(ACTION_VIEW, uri)` + `startActivity` —
+  this is deep-link routing, **not** a redirect method. Stage 0
+  detection now disqualifies an override as 7.3 if **all**
+  scheme-branches end with an external `startActivity(Intent.ACTION_VIEW)`.
+  7.3 fires only when the body performs in-app navigation
+  (`navController.navigate`, `startActivity(GameActivity)`, etc.)
+  upon URL match. Eliminates the "знайдено кілька методів"
+  false-positive when 7.1/7.2 is the real redirect and
+  `shouldOverrideUrlLoading` exists only for external apps.
+
+- `webview/loadurl-after-initial`: rule didn't recognize the
+  canonical Chromium multi-window forwarding pattern. When a web
+  page calls `window.open()` or clicks `<a target="_blank">`, and
+  the WebView has `setSupportMultipleWindows(true)`, Chromium
+  delegates to `WebChromeClient.onCreateWindow(...)`. The standard
+  Android handler is to create a temporary "capture" WebView whose
+  `WebViewClient.shouldOverrideUrlLoading` intercepts the URL and
+  forwards it to the parent via `parent.loadUrl(url)` — flagged as
+  "loadUrl outside lifecycle-init" by the original rule, but it's
+  a legitimate forwarding pattern, not a smell. Step 2 of
+  "Як перевірити" now treats any `loadUrl` callsite whose
+  control-flow originates from `onCreateWindow` (directly or via
+  an inner callback created there) as legit. Documented by pattern
+  (control-flow origin), not exact code shape, since
+  implementations vary (intermediate capture WebView vs. direct
+  URL extraction from `resultMsg`/`HitTestResult`).
+
 ## [2.6.0] — 2026-05-12
 
 ### Added

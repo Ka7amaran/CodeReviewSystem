@@ -71,18 +71,30 @@ URL, API keys, OAuth client IDs, шляхів до encrypted assets тощо).
      `app/src/androidTest/`, або у файлах з `@RunWith` annotation.
    - **R.string references**: `R.string.foo` (це не string literal,
      це ID).
-4. Для решти string literals (значущих):
-   - Перевірити, чи файл / клас / функція має class-level або
-     file-level `@LSParanoid` / `@Obfuscate` / `@StringEncrypt` /
-     еквівалент. Файл-level annotation покриває весь файл.
-   - АБО чи кожен такий literal використовується ВИКЛЮЧНО як аргумент
-     `.dec(...)` / runtime-decrypt функції (тобто це закодований
-     blob, не plaintext).
-   - АБО чи literal винесений у `BuildConfig` (декрипт відбувається
-     compile-time у Gradle build script).
+4. Для решти string literals (значущих) — literal "покритий", якщо
+   виконується хоча б одна з умов:
+   - Файл / клас / функція має class-level або file-level
+     `@LSParanoid` / `@Obfuscate` / `@StringEncrypt` / еквівалент.
+     Файл-level annotation покриває весь файл.
+   - Literal використовується ВИКЛЮЧНО як аргумент `.dec(...)` /
+     runtime-decrypt функції (тобто це закодований blob, не plaintext).
+   - Literal надходить з NDK-функції (JNI-метод, що повертає String /
+     ByteArray із `.so`-бібліотеки). Сам literal у `.kt`/`.java` коді
+     відсутній — у APK він живе у нативному модулі і не видимий
+     через `apktool`/`jadx`.
 5. Якщо у файлі є хоча б один значущий string literal, на який
-   **не** поширюється жоден з трьох механізмів захисту → finding
-   `critical` для цього файлу.
+   **не** поширюється жоден з механізмів захисту → finding `critical`
+   для цього файлу.
+
+**Важливо про `BuildConfig`:** винесення літерала у `BuildConfig`
+**саме по собі** не захищає від декомпайлу. Gradle вставляє його як
+`public static final String` у згенерований `BuildConfig.class`, який
+після `apktool d` + `jadx` читається в plaintext так само, як
+звичайний `.kt`-файл. `BuildConfig` корисний для управління секретами
+**у source-control** (інжекція з CI/env vars, різні значення для
+debug/release builds), але не виконує контракт цього правила.
+Якщо цінність — приховати від декомпайлу — комбінуйте `BuildConfig`
+з обфускатором (#1) або з runtime-decrypt blob'ом (#2).
 
 ### Крок 3 — Один finding на файл
 
@@ -139,10 +151,22 @@ object BackendUrls {
 ```
 
 ```kotlin
-// Варіант В — BuildConfig (compile-time через Gradle)
-// build.gradle.kts:
-//   buildConfigField("String", "BACKEND_URL", "\"<encrypted-string>\"")
-val baseUrl = BuildConfig.BACKEND_URL                            // ✅
+// Варіант В — NDK-секрет (живе у .so, не у .kt)
+external fun getBackendUrl(): String                             // JNI binding
+val baseUrl = getBackendUrl()                                    // ✅ literal у нативному коді
+// Сам URL — у app/src/main/cpp/secrets.c, після компіляції у
+// libsecrets.so. apktool/jadx його не показують; для extraction
+// потрібен IDA Pro / Ghidra і ARM-assembly skill.
+```
+
+```kotlin
+// Варіант Г (advanced) — server-issued key через Play Integrity
+// Ключ ЖОДНОЇ миті не існує в APK. App робить attestation-запит до
+// Play Integrity API → надсилає токен на ваш backend → backend
+// видає decryption key тільки якщо токен валідний (real device,
+// untampered APK). Ключ живе у RAM на час сесії. Underground для
+// high-value secrets (банки, gambling); потребує backend
+// інфраструктури і обов'язково мережі при першому запуску.
 ```
 
 ## Як доповідати
@@ -151,7 +175,7 @@ val baseUrl = BuildConfig.BACKEND_URL                            // ✅
 [crypto/string-literal-encoding-coverage] CRITICAL
   <file>:<line>   (перший проблемний рядок у файлі)
   Файл містить <N> значущих рядкових літералів, що НЕ покриті обфускацією: <короткий список перших 3-5 у форматі "line X: short preview…">. Файл НЕ має `@LSParanoid` / `@Obfuscate` / еквівалентної annotation, і literals не проходять через runtime-decrypt. У decompiled APK ці рядки видно у plaintext.
-  Як виправити: додайте `@file:LSParanoid` (або еквівалент команди) на початок файлу, АБО винесіть literals у BuildConfig, АБО заведіть їх через runtime-decrypt blob. Один з трьох — на ваш розсуд.
+  Як виправити: додайте `@file:LSParanoid` (або еквівалент обфускатора команди) на початок файлу, АБО заведіть literals через runtime-decrypt blob (`.dec(byteArrayOf(...))`), АБО винесіть у NDK-секрет (literal живе у `.so`, не у `.kt`). `BuildConfig` сам по собі НЕ ховає від декомпайлу — використовуйте тільки в комбінації з одним із цих механізмів. Для high-value secrets розгляньте Play Integrity з server-issued key.
   Див.: docs/specs/2026-05-05-v2-functional-validator-design.md §3.10
 ```
 

@@ -62,6 +62,25 @@ CRITICAL (немає переходу). Якщо два і більше — SUSP
 5. Якщо знайдений, але без валідації origin (для 7.1) → `critical`
    (security issue).
 
+### Як відрізнити 7.3 від deep-link router'а
+
+`shouldOverrideUrlLoading` часто живе у проєкті **не** як redirect-метод,
+а як обробник зовнішніх схем (`mailto:`, `tel:`, `whatsapp://`,
+`viber://`, `tg://`, `intent://`, `market://`, `geo:`, банківські).
+Це — **deep-link router**, не redirect 7.3. Розрізнення:
+
+| Що робить тіло після scheme-match | Класифікація |
+|---|---|
+| `Intent(Intent.ACTION_VIEW, uri).also { startActivity(it) }` (зазвичай у `try/catch ActivityNotFoundException`) | deep-link router — НЕ 7.3 |
+| `navController.navigate(...)` / `startActivity(GameActivity)` / іншу in-app навігацію | 7.3 redirect |
+
+Якщо ВСІ scheme-branches у `shouldOverrideUrlLoading` закінчуються
+external `startActivity(Intent.ACTION_VIEW)` — це чистий deep-link
+router. Stage 0 НЕ повинен рахувати його як 7.3. Це усуває
+false-positive "знайдено кілька методів", коли проєкт використовує
+7.1 або 7.2 як справжній redirect, а `shouldOverrideUrlLoading`
+обслуговує тільки external app launches.
+
 ## Як виглядає поломка (приклад для 7.1)
 
 ```kotlin

@@ -57,6 +57,17 @@ in-app browser, який підставляє URL'и довільно).
      не flag'ити.
    - У `onResume` після перевірки `webView.url == null` → **retry
      after process-restore**, не flag'ити.
+   - **Control flow походить з `WebChromeClient.onCreateWindow(...)`** —
+     прямо у тілі override'а, або у inner-callback'у, створеному
+     всередині `onCreateWindow` (типовий випадок: temp "capture"
+     WebView з власним `WebViewClient.shouldOverrideUrlLoading`, яка
+     forward'ить URL у parent через `parent.loadUrl(url)`). Це
+     **канонічний Chromium multi-window forwarding** — обробка
+     `window.open()` / `<a target="_blank">` коли Compose-AndroidView
+     не вміє multi-window. Не flag'ити. Shape варіює (intermediate
+     WebView vs. екстракція URL з `resultMsg`/`HitTestResult` напряму
+     vs. інший варіант) — класифікуй за паттерном control-flow, а
+     не за точним кодом.
    - У будь-якому іншому місці (button-handler, observer'у LiveData,
      coroutine-launch після API-відповіді, BroadcastReceiver-callback,
      navigation-callback з іншого екрану) → **flag як observation**.

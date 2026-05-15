@@ -15,8 +15,10 @@ since: "2.0.0"
 Activity, що містить WebView або відкриває CustomTabs, має:
 - **Вільне обертання** (без блокування orientation у portrait/landscape).
 - **Повноекранний режим** без винятків.
-- **Top status bar видимий завжди** (індикатори батареї, мережі —
-  не приховані).
+- **Top status bar доступний користувачу** — статично видимий АБО
+  приховано із `systemBarsBehavior = BEHAVIOR_SHOW_TRANSIENT_BARS_BY_SWIPE`
+  (юзер виводить bar свайпом з верхнього краю). Контракт — *доступ*,
+  не *постійна видимість*.
 - Системні навігаційні кнопки — або статичні+видимі, або динамічні
   через свайп. Не блокувати.
 
@@ -29,14 +31,17 @@ Activity, що містить WebView або відкриває CustomTabs, ма
      або одним із: `unspecified`, `fullSensor`, `user`,
      `userLandscape`, `userPortrait`, `sensorLandscape`,
      `sensorPortrait`. Не `portrait`/`landscape` (фіксована).
-3. У коді Activity / Compose:
-   - `WindowInsetsControllerCompat.systemBarsBehavior` НЕ має
-     приховувати top status bar (тобто не
-     `BEHAVIOR_SHOW_TRANSIENT_BARS_BY_SWIPE` з прихованим
-     `WindowInsetsCompat.Type.statusBars()`).
-   - `setDecorFitsSystemWindows(false)` + `WindowInsetsControllerCompat`
-     — OK для повноекранного UI, але statusBars() мають лишатись
-     `show()`.
+3. У коді Activity / Compose шукати `WindowInsetsControllerCompat`:
+   - Якщо є `hide(WindowInsetsCompat.Type.statusBars())` або
+     `hide(WindowInsetsCompat.Type.systemBars())` (включає status bar) —
+     перевірити `systemBarsBehavior` у тому самому `apply { }` /
+     налаштуванні controller'а:
+     - `BEHAVIOR_SHOW_TRANSIENT_BARS_BY_SWIPE` → юзер має swipe-доступ
+       до status bar → **НЕ flag'ити**.
+     - `BEHAVIOR_DEFAULT` / не встановлено → status bar прихований без
+       способу його викликати → **flag SUSPICIOUS**.
+   - Якщо є `show(WindowInsetsCompat.Type.statusBars())` або жодного
+     hide → status bar статично видимий → OK.
 4. Кожне порушення — окремий finding `suspicious`.
 
 ### Що НЕ flag'ити
@@ -63,8 +68,8 @@ Activity, що містить WebView або відкриває CustomTabs, ма
 
 ```kotlin
 WindowInsetsControllerCompat(window, window.decorView).apply {
-    hide(WindowInsetsCompat.Type.statusBars())          // ❌ прихований top bar
-    systemBarsBehavior = BEHAVIOR_SHOW_TRANSIENT_BARS_BY_SWIPE
+    hide(WindowInsetsCompat.Type.systemBars())          // ❌ status bar прихований…
+    systemBarsBehavior = BEHAVIOR_DEFAULT               // ❌ …і свайп НЕ виводить його
 }
 ```
 
@@ -78,10 +83,20 @@ WindowInsetsControllerCompat(window, window.decorView).apply {
 ```
 
 ```kotlin
+// Варіант А — status bar статично видимий
 WindowCompat.setDecorFitsSystemWindows(window, false)
 WindowInsetsControllerCompat(window, window.decorView).apply {
-    show(WindowInsetsCompat.Type.statusBars())          // ✅ top bar видимий
-    systemBarsBehavior = BEHAVIOR_DEFAULT
+    show(WindowInsetsCompat.Type.statusBars())          // ✅ top bar видимий завжди
+}
+```
+
+```kotlin
+// Варіант Б — immersive, але swipe-revealable
+WindowCompat.setDecorFitsSystemWindows(window, false)
+WindowInsetsControllerCompat(window, window.decorView).apply {
+    hide(WindowInsetsCompat.Type.systemBars())
+    systemBarsBehavior =
+        WindowInsetsControllerCompat.BEHAVIOR_SHOW_TRANSIENT_BARS_BY_SWIPE   // ✅ свайп виводить bar
 }
 ```
 
@@ -97,7 +112,8 @@ WindowInsetsControllerCompat(window, window.decorView).apply {
 
 ## Виключення
 
-Жодних для top status bar — він має бути видимим завжди (контракт
-§3.8). Дозволено через `accepted-deviations` для фіксованої orientation,
-якщо проєкт навмисно так налаштований (наприклад, специфічний layout
-вимагає portrait). Обґрунтування обов'язкове.
+Жодних для повного блокування status bar (без swipe-reveal) — він
+має бути доступний користувачу (контракт §3.8). Дозволено через
+`accepted-deviations` для фіксованої orientation, якщо проєкт навмисно
+так налаштований (наприклад, специфічний layout вимагає portrait).
+Обґрунтування обов'язкове.

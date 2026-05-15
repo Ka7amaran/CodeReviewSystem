@@ -74,8 +74,18 @@ the three signatures:
 - 7.1: `addWebMessageListener` (or `WebMessageListener`).
 - 7.2: `override fun onConsoleMessage` inside a class extending
   `WebChromeClient`.
-- 7.3: `override fun shouldOverrideUrlLoading` AND a custom-scheme
-  string literal nearby (`app://`, `game://`, project-specific scheme).
+- 7.3: `override fun shouldOverrideUrlLoading` AND its body performs
+  in-app navigation upon URL/scheme match (`navController.navigate(...)`,
+  `startActivity(GameActivity::class.java)`, або інший in-app
+  destination). **NOT counted** as 7.3: deep-link routers that ONLY
+  launch external apps via `Intent(Intent.ACTION_VIEW, uri)` +
+  `startActivity` (типово з `try/catch ActivityNotFoundException`)
+  for schemes like `mailto:`, `tel:`, `sms:`, `whatsapp://`,
+  `viber://`, `tg://`, `telegram://`, `market://`, `geo:`,
+  `intent://`, банківські (`dia://`, `privat24://` тощо). Такі
+  override'и — це deep-link router, а не redirect-method. Якщо
+  ВСІ scheme-branches у тілі `shouldOverrideUrlLoading` ведуть в
+  external Intent → 7.3 = not-detected у цьому файлі.
 
 Decision (consumed by `flow/redirect-method-correctness`):
 - Exactly 1 found → that's the method, verify it.
