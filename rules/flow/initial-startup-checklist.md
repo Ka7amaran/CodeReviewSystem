@@ -29,16 +29,27 @@ requires-project-type: with-attribution
 Це dataflow-перевірка, не grep. Агент має простежити стартову
 послідовність викликів від точки входу (`Application.onCreate`,
 launcher Activity's `onCreate`, перший Composable у NavGraph) і
-переконатись, що до моменту першого UI-рендеру виконано усі 6 дій.
+переконатись, що усі 6 дій **досяжні** у dataflow стартового флоу.
+
+**Timing не пиниться.** Інваріант — *факт виконання у session*, не
+*до першого UI-рендеру*. Крок задовольняє контракт, якщо він досяжний
+з точки входу хоч у `onCreate` Application'а, хоч у `LaunchedEffect`
+на пізнішому екрані (наприклад, у Splash чи Policy composable), хоч
+у `ViewModel.init` ViewModel'а, що інстанціюється під час нормального
+сценарію. Команда свідомо може ініціалізувати push-сервіс у момент
+відкриття WebView (а не у Application.onCreate) — це валідна
+архітектура. Головне — щоб крок дійсно виконувався під час session,
+а не був мертвим кодом.
 
 1. Знайти точку входу: `class * : Application()` із
    `@HiltAndroidApp`/`AndroidEntryPoint` АБО launcher Activity з
    `<intent-filter>` MAIN/LAUNCHER.
 2. Слідкувати за стартовим dataflow: які класи інстанціюються,
    які корутини запускаються у `onCreate` / `LaunchedEffect` /
-   `init` блоках.
+   `init` блоках, які callback'и тригеряться під час нормального
+   сценарію (включно з переходом на splash → policy → WebView).
 3. Для кожного з 6 кроків знайти **факт виконання** (без вимог
-   до конкретного SDK):
+   до конкретного SDK і без вимог до timing'у):
    - UUID: будь-який вираз, що зчитує/пише `uuid`/`user_id`/
      `device_id` із persistence layer + умовна генерація.
    - Push init: будь-який виклик схожий на

@@ -15,15 +15,22 @@ since: "2.0.0"
 
 Якщо у проєкті виявлено хоча б один WebView-instance (Stage 0
 detection: `landing-mechanism ∈ {webview, both}`), кожен такий
-WebView-instance має містити **базовий набір** налаштувань (без
-яких WebView ламається на типовій landing-сторінці), а також
-**use-case-залежні** налаштування — лише якщо у проєкті є докази
-відповідного use-case'у.
+WebView-instance має **функціонально працювати** для типової
+landing-сторінки команди (Privacy Policy + потенційні OAuth логіни,
+file upload, permission requests за наявності відповідного use-case'у
+у manifest).
+
+Інваріант — *WebView функціонує*, не *WebView має точно ці APIs
+викликані*. Якщо команда винайшла альтернативний механізм досягнення
+тієї ж функціональності (наприклад, custom WebView subclass, що
+встановлює налаштування у конструкторі замість через `settings.apply`,
+або Compose-wrapper з власним config layer) — це OBSERVATION
+("новий механізм налаштування — додайте у каталог"), не CRITICAL.
 
 Якщо WebView у коді немає взагалі (`landing-mechanism ∈ {custom-tabs,
 none}`) — правило skip'ається.
 
-### Базовий набір (вимагається завжди)
+### Каталог відомих налаштувань — базовий набір
 
 - `mixedContentMode = 0` (≡ `WebSettings.MIXED_CONTENT_ALWAYS_ALLOW`) —
   команда canonical preset вимагає саме `0`. Це свідомий вибір
@@ -44,7 +51,7 @@ none}`) — правило skip'ається.
   `setAcceptThirdPartyCookies(webView, true)` — інакше ламається
   OAuth (Google/Facebook/Apple sign-in) у WebView.
 
-### Use-case-залежні (вимагаються лише при відповідних доказах у manifest)
+### Каталог відомих налаштувань — use-case-залежні (вимагаються лише при відповідних доказах у manifest)
 
 - `onShowFileChooser` (override у `WebChromeClient`) — flag missing
   **тільки якщо** `AndroidManifest.xml` оголошує `CAMERA`
@@ -99,6 +106,13 @@ Android-боку, або переїхали в інше правило)
      finding `suspicious`. Reason: WebView не зможе попросити дозвіл
      на камеру/мікрофон у веб-сторінки.
 6. Все інше з v2.0/v2.1 preset'у НЕ flag'ається.
+7. **Novel mechanism**: якщо WebView функціонально працює, але
+   налаштування виставлені через нестандартний механізм (custom
+   WebView subclass, Compose config-wrapper, factory-based pattern,
+   тощо), і всі необхідні invariants задовольняються — emit
+   `OBSERVATION` "знайдено новий механізм конфігурації WebView:
+   `<name>`; функціональні інваріанти задовольняються; додайте у
+   каталог якщо team-pattern". Не emit suspicious.
 
 ## Як виглядає поломка
 

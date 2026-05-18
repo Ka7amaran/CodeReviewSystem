@@ -70,28 +70,46 @@ Decision:
   "no WebView/CustomTabs detected in code").
 
 **`redirect-method`** — search `app/src/main/java/**/*.{kt,java}` for
-the three signatures:
-- 7.1: `addWebMessageListener` (or `WebMessageListener`).
-- 7.2: `override fun onConsoleMessage` inside a class extending
-  `WebChromeClient`.
-- 7.3: `override fun shouldOverrideUrlLoading` AND its body performs
-  in-app navigation upon URL/scheme match (`navController.navigate(...)`,
-  `startActivity(GameActivity::class.java)`, або інший in-app
-  destination). **NOT counted** as 7.3: deep-link routers that ONLY
-  launch external apps via `Intent(Intent.ACTION_VIEW, uri)` +
-  `startActivity` (типово з `try/catch ActivityNotFoundException`)
-  for schemes like `mailto:`, `tel:`, `sms:`, `whatsapp://`,
-  `viber://`, `tg://`, `telegram://`, `market://`, `geo:`,
-  `intent://`, банківські (`dia://`, `privat24://` тощо). Такі
-  override'и — це deep-link router, а не redirect-method. Якщо
-  ВСІ scheme-branches у тілі `shouldOverrideUrlLoading` ведуть в
-  external Intent → 7.3 = not-detected у цьому файлі.
+**any WebView callback/listener that reaches in-app navigation**
+(`navController.navigate(in-app dest)`, `startActivity(in-app Activity)`,
+Compose state change to game screen, тощо). The check is functional:
+trace dataflow from each callback to in-app destination.
+
+Каталог відомих патернів (extensible, не exhaustive):
+- 7.1: `addWebMessageListener` (or `WebMessageListener`) → in-app nav.
+- 7.2: `override fun onConsoleMessage` (`WebChromeClient`) → in-app nav.
+- 7.3: `override fun shouldOverrideUrlLoading` (`WebViewClient`) AND
+  body performs in-app navigation upon URL/scheme match.
+- 7.4: `override fun onReceivedTitle` (`WebChromeClient`) — title-match
+  pattern (e.g., `if (title == "Privacy & Policies") navigateGame()`).
+- 7.5: `override fun onPageFinished` / `onPageStarted` (`WebViewClient`)
+  with URL/title match → in-app nav.
+
+**NOT counted** as a redirect method: deep-link routers in
+`shouldOverrideUrlLoading` where ALL scheme-branches end with
+`Intent(Intent.ACTION_VIEW, uri).also { startActivity(it) }` (typically
+with `try/catch ActivityNotFoundException`) for external schemes like
+`mailto:`, `tel:`, `sms:`, `whatsapp://`, `viber://`, `tg://`,
+`telegram://`, `market://`, `geo:`, `intent://`, банківські
+(`dia://`, `privat24://`). Якщо ВСІ scheme-branches ведуть у external
+Intent → це deep-link router, не redirect-method.
+
+**Novel mechanism handling**: якщо dataflow виявляє інший WebView
+callback override (не з каталогу вище), який досягає in-app навігації,
+report it as `(novel: <callback-name>)` і дозволь rule body
+emit OBSERVATION з шаблоном "знайдено новий патерн — додайте у каталог".
 
 Decision (consumed by `flow/redirect-method-correctness`):
-- Exactly 1 found → that's the method, verify it.
-- 0 found AND `landing-mechanism ∈ {webview, both}` → CRITICAL
-  (no Privacy Policy → game redirect implemented).
-- 2+ found → SUSPICIOUS (redundant code; pick one).
+- Exactly 1 catalog pattern found → that's the method, verify it
+  reaches in-app nav.
+- Novel mechanism found (WebView callback override → in-app nav, not
+  in catalog 7.1-7.5) → rule emits OBSERVATION ("новий патерн X;
+  інваріант виконується; додайте у каталог").
+- 0 mechanisms found AND `landing-mechanism ∈ {webview, both}` →
+  CRITICAL (Privacy Policy → game invariant broken).
+- 2+ catalog patterns found that BOTH reach in-app nav → SUSPICIOUS
+  (redundant; pick one). If one is in catalog and other is novel,
+  catalog wins; novel surfaces as OBSERVATION.
 - `landing-mechanism = custom-tabs | none` → skip rule entirely.
 
 **`backend-domain`** — derived as side-effect of
@@ -265,3 +283,22 @@ on the way out.
   concrete finding ("value is X, canonical is Y"). Never offload
   judgment to the human via a confirmation request — the rule body
   IS the contract.
+- **Functional invariant, not implementation list**. Every rule's
+  CRITICAL severity defends an observable end-state contract
+  ("Privacy Policy → user reaches game", "non-organic POST hits the
+  wire", "all literal strings are obfuscated in release builds"),
+  NOT a closed roster of implementations. Mechanism lists in rule
+  bodies are a **catalog of known patterns** — examples, not an
+  exhaustive whitelist. When dataflow reveals a novel mechanism that
+  satisfies the invariant, emit OBSERVATION with shape:
+
+  ```
+  [<rule-id>] OBSERVATION
+    <file>:<line>
+    Знайдено новий патерн <name>: <one-line description of how it satisfies the invariant>. Інваріант правила виконується. Якщо це свідомий team-патерн — додайте у каталог відомих механізмів у `rules/<category>/<rule>.md §Інваріант`.
+  ```
+
+  Reserve CRITICAL/SUSPICIOUS strictly for the case where NO path
+  leads to the contracted end-state. Developers WILL keep inventing
+  approaches (anti-detection vs store review, A/B variations, bug
+  fixes); the plugin catalogs discoveries — it does not gate them.

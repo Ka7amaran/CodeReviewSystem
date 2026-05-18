@@ -72,7 +72,8 @@ URL, API keys, OAuth client IDs, шляхів до encrypted assets тощо).
    - **R.string references**: `R.string.foo` (це не string literal,
      це ID).
 4. Для решти string literals (значущих) — literal "покритий", якщо
-   виконується хоча б одна з умов:
+   виконується хоча б одна з умов **з каталогу відомих механізмів**
+   (extensible, не closed list):
    - Файл / клас / функція має class-level або file-level
      `@LSParanoid` / `@Obfuscate` / `@StringEncrypt` / еквівалент.
      Файл-level annotation покриває весь файл.
@@ -82,6 +83,15 @@ URL, API keys, OAuth client IDs, шляхів до encrypted assets тощо).
      ByteArray із `.so`-бібліотеки). Сам literal у `.kt`/`.java` коді
      відсутній — у APK він живе у нативному модулі і не видимий
      через `apktool`/`jadx`.
+   - **Novel mechanism**: команда винайшла свій спосіб (наприклад,
+     custom Gradle plugin, що генерує encrypt'ed BuildConfig; AspectJ
+     transform; KotlinPoet-based code generation з encryption;
+     server-issued keys via Play Integrity). Якщо dataflow підтверджує,
+     що literal недосяжний у plaintext у APK (через будь-який
+     механізм) — emit `OBSERVATION` "знайдено новий механізм покриття:
+     `<name>`; інваріант виконується; додайте у каталог у
+     `rules/crypto/string-literal-encoding-coverage.md §Як перевірити`
+     якщо team-pattern". Не emit CRITICAL.
 5. Якщо у файлі є хоча б один значущий string literal, на який
    **не** поширюється жоден з механізмів захисту → finding `critical`
    для цього файлу.

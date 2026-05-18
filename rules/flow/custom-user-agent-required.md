@@ -37,17 +37,31 @@ applicationId і versionName, але **не SDK-default**.
 
 ## Як перевірити
 
+Інваріант — **кожен outgoing attribution-relevant HTTP-запит має
+кастомний `User-Agent` header** (не SDK-default). Конкретний HTTP-
+клієнт не важливий — каталог нижче exemplifies known patterns, але
+якщо команда використовує інший HTTP-стек (cronet, fuel, ktor-on-
+android-platform-engine, NDK через cURL, тощо) — інваріант той самий.
+
+### Каталог відомих патернів виставлення UA
+
 1. Знайти кожен HTTP-клієнт у `applies-to` файлах:
    - **Ktor**: `HttpClient(...)`, `HttpClient { ... }`, `install(UserAgent)`.
    - **OkHttp**: `OkHttpClient.Builder()`, `addInterceptor`, header
      `"User-Agent"`.
    - **Retrofit**: під ним лежить OkHttp — перевіряти OkHttpClient.
    - **HttpURLConnection**: `setRequestProperty("User-Agent", ...)`.
+   - **Будь-який інший HTTP-клієнт** (Cronet, Fuel, Volley, NDK,
+     тощо) — шукати UA-конфігурацію у відповідному API.
 2. Для кожного клієнта перевірити, чи виставлений UA ЯВНО:
    - Ktor: блок `install(UserAgent) { agent = "..." }` присутній.
    - OkHttp: interceptor що ставить `addHeader("User-Agent", ...)`
      присутній.
    - HttpURLConnection: явний `setRequestProperty("User-Agent", ...)`.
+   - Novel client: відповідний API цього клієнта виставляє UA header
+     на кожен запит. Якщо так — emit `OBSERVATION` ("знайдено новий
+     HTTP-клієнт `<name>`; UA виставлено; додайте у каталог якщо
+     team-pattern"); якщо ні — `CRITICAL`.
 3. Якщо UA явно НЕ виставлений — finding `critical`.
 4. Якщо UA виставлений, але значення містить літерально `okhttp` /
    `Ktor` / тільки `Android` без додаткової інформації — finding

@@ -4,6 +4,125 @@ All notable changes to the `android-review` plugin will be documented here.
 Format follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/);
 versioning follows [Semver](https://semver.org/).
 
+## [2.7.0] — 2026-05-18
+
+### Changed (philosophy shift — plugin-wide)
+
+This release codifies a plugin-wide principle that was inconsistently
+applied across rules: **rules verify functional invariants, never
+closed lists of implementations**. When a team invents a novel
+mechanism that satisfies the same end-state contract, the rule emits
+`OBSERVATION` ("новий патерн виявлено — додайте у каталог"), NOT
+`CRITICAL`. CRITICAL/SUSPICIOUS are reserved strictly for the case
+where NO path in the project leads to the contracted end-state.
+
+The motivation came from three real-app false-positives during v2.6.x
+reviews:
+
+1. `flow/redirect-method-correctness` flagged a `onReceivedTitle`-based
+   redirect as CRITICAL because it wasn't in the closed list
+   7.1/7.2/7.3 — despite the Privacy Policy → game navigation working
+   perfectly.
+2. `flow/initial-startup-checklist` flagged `OneSignal.initWithContext`
+   called in `PolicyScreen.LaunchedEffect` because the rule's
+   "Як перевірити" required execution "до моменту першого UI-рендеру",
+   contradicting its own Інваріант ("у будь-якому місці коду").
+3. `crypto/post-data-encoding-pattern` flagged heterogeneous payload
+   normalization (one field URL-encoded, others raw) before a single
+   encryption step — despite the wire seeing only encrypted bytes.
+
+### Added
+
+- `agents/functional-validator.md`: new Hard constraint
+  **"Functional invariant, not implementation list"** with explicit
+  OBSERVATION template for novel mechanisms. Codifies the principle
+  at the agent level so future rules cannot drift back to pinning.
+
+- `rules/_schema.md`: formulation guidance added to `## Інваріант`
+  (state as observable end-state, not closed list; label mechanism
+  lists as "Каталог відомих патернів" — extensible) and to
+  `## Як перевірити` (novel mechanism → OBSERVATION, not CRITICAL).
+
+### Fixed (rule rewrites)
+
+- `flow/redirect-method-correctness` (major rewrite): Інваріант
+  reformulated as "Privacy Policy → in-app game navigation eventually
+  happens". Mechanism list relabeled as "Каталог відомих патернів"
+  and expanded with **7.4 onReceivedTitle** (title-match → in-app nav)
+  and **7.5 onPageFinished / onPageStarted** (URL/title match →
+  in-app nav). `Як перевірити` rewritten to trace dataflow from any
+  WebView callback to in-app navigation; novel mechanism that reaches
+  in-app nav emits OBSERVATION; CRITICAL only when no path exists.
+  Agent's Stage 0 detection updated to match (catalog patterns +
+  novel reporting). Eliminates the title-redirect false-positive.
+
+- `flow/post-redirect-no-return` (moderate rewrite): Інваріант
+  reformulated as "Privacy Policy маршрут недосяжний через back-
+  navigation after redirect". Forms A (NavController + popUpTo
+  inclusive) and B (startActivity + finish/finishAffinity) relabeled
+  as "Каталог відомих патернів" — extensible. Novel back-stack-
+  clearing mechanism (Fragment back-stack reset, `Activity.recreate()`
+  with cleared NavGraph, etc.) that achieves the same end-state
+  emits OBSERVATION instead of CRITICAL.
+
+- `flow/initial-startup-checklist`: removed the "до моменту першого
+  UI-рендеру" timing cutoff in `Як перевірити` (contradicted the
+  rule's own Інваріант which already said "у будь-якому місці коду").
+  Step is satisfied if reachable in the startup-flow execution path —
+  including `LaunchedEffect` on later screens, `ViewModel.init` of
+  ViewModels instantiated during normal flow, callback-driven init.
+  Late-binding push initialization (e.g., OneSignal init at WebView
+  open) is now correctly recognized as valid architecture.
+
+- `crypto/post-data-encoding-pattern`: invariant narrowed to "raw
+  attribution values don't reach the HTTP wire as plaintext"
+  (verified by tracing from body construction to actual
+  `httpClient.post`-equivalent). Removed the homogeneous-normalization
+  check (internal payload structure BEFORE the single encryption
+  step is not the plugin's contract; how backend parses the decrypted
+  blob is a separate contract between team and backend). Heterogeneous
+  per-field normalization within an encrypted payload no longer
+  flags.
+
+- `crypto/string-literal-encoding-coverage`: added novel-mechanism
+  observation hook to mechanism list. If team invented a custom
+  Gradle plugin / AspectJ transform / KotlinPoet codegen with
+  encryption / Play Integrity-based server-issued keys / any other
+  mechanism that prevents the literal from being plaintext in the
+  APK, the rule emits OBSERVATION instead of CRITICAL.
+
+- `webview/config-completeness`: settings list relabeled as
+  "Каталог відомих налаштувань". Novel WebView configuration
+  mechanism (custom WebView subclass, Compose config-wrapper,
+  factory-based pattern) that achieves the same functional
+  invariants emits OBSERVATION instead of SUSPICIOUS.
+
+- `flow/custom-user-agent-required`: HTTP client list generalized
+  to "Ktor, OkHttp, Retrofit, HttpURLConnection — або будь-який
+  інший HTTP-клієнт". Novel HTTP client (Cronet, Fuel, Volley, NDK
+  via cURL, etc.) with custom UA properly set emits OBSERVATION
+  for catalog addition.
+
+- `webview/activity-fullscreen-orientation`: added novel-API
+  observation hook (Compose-only `WindowInsets` composables,
+  `enableEdgeToEdge()`, custom theme-based fullscreen) that
+  achieves the same access-to-status-bar invariant emits OBSERVATION
+  instead of SUSPICIOUS.
+
+- `webview/loadurl-after-initial`: added novel-context observation
+  hook (deep-link `onNewIntent` handler, in-app QR-scanner result
+  callback, intentional user-driven refresh button) that legitimizes
+  `loadUrl` outside the existing catalog of legit contexts.
+
+### Notes
+
+The plugin now ships **15 functional rules** unchanged in count:
+7 `flow/*`, 3 `webview/*`, 2 `crypto/*`, 3 `perf/*`. **6 rules** were
+left unmodified because they were already invariant-based:
+`flow/organic-routing-critical`, `flow/uuid-persistence`,
+`flow/non-organic-post-required`, `perf/startup-blocking`,
+`perf/webview-pitfalls`, `perf/runtime-decrypt-cost`.
+
 ## [2.6.1] — 2026-05-15
 
 ### Fixed

@@ -22,10 +22,25 @@ requires-project-type: with-attribution | no-attribution   # OPTIONAL; if set, r
 
 1. **`## Інваріант`** — what behavior must hold at runtime. The
    contract the rule defends. 1-3 sentences.
+
+   **Formulation rule:** state the invariant as an observable
+   end-state ("X eventually happens at runtime", "Y holds when Z
+   executes"), NOT as a closed list of implementations ("done via
+   mechanism A, B, or C"). If you include a list of mechanisms, label
+   it explicitly as "**Каталог відомих патернів**" — extensible, not
+   exhaustive. Developers WILL keep inventing approaches; the rule
+   must accept any mechanism that satisfies the end-state.
 2. **`## Як перевірити`** — dataflow-trace recipe for the agent.
    How to verify the invariant by reading code (which symbols to
    look for, which call chains to follow, which file types to read).
    This is NOT a grep recipe — it's a reasoning recipe.
+
+   **Novel mechanism handling:** if dataflow reveals a mechanism that
+   satisfies the invariant but isn't in the catalog of known patterns,
+   emit `OBSERVATION` ("знайдено новий патерн X у `<file>:<line>`;
+   інваріант виконується; додайте до каталогу якщо team-pattern"),
+   NOT `CRITICAL`. `CRITICAL` is reserved for the case where NO path
+   in the project leads to the contracted end-state.
 3. **`## Як виглядає поломка`** — minimal example of the broken
    behavior (Kotlin/XML/JSON snippet).
 4. **`## Як виглядає правильно`** — minimal example of correct

@@ -9,25 +9,47 @@ since: "2.0.0"
 requires-project-type: with-attribution
 ---
 
-# Метод переходу Privacy Policy → game реалізовано коректно
+# Перехід із Privacy Policy у гру реалізовано і працює
 
 ## Інваріант
 
-Перехід із Privacy Policy у гру виконується через **один із трьох
-дозволених методів**:
+Після завантаження Privacy Policy у WebView, control eventually
+reaches **in-app game destination** (`navController.navigate(<game>)`,
+`startActivity(<game-Activity>)`, Compose state change на game-екран,
+або інший in-app navigation call). Метод досягнення цієї end-state
+**може бути будь-яким** — рішення команди / архітектура / experimental
+підхід.
+
+Мета правила: переконатись, що цей контракт дійсно виконується (тобто
+існує реальний path від WebView callback'у до in-app навігації), а не
+дотриматись конкретного шаблону реалізації.
+
+## Каталог відомих патернів
+
+Список механізмів, які команда вже використовувала. **Це extensible
+catalog, не closed list** — якщо знайдено новий механізм, що
+задовольняє інваріант, він surfaces як `OBSERVATION` для додавання
+сюди.
 
 - **7.1 webMessageListener** — `WebViewCompat.addWebMessageListener`
-  з обмеженням origin'у через `allowedOriginRules`. Web сторона
+  з обмеженням origin'у через `allowedOriginRules`. Web-сторона
   надсилає через `appBridge.postMessage(...)`. Android слухає, валідує
-  origin, парсить команду.
+  origin, парсить команду → in-app nav.
 - **7.2 consoleLog** — `WebChromeClient.onConsoleMessage()` парсить
-  повідомлення вигляду `APP_ACTION: GO_GAME`.
-- **7.3 shouldOverrideUrlLoading** — Privacy Policy визначається за
-  ознакою "не виклинуто `shouldOverrideUrlLoading` до `onPageStarted`".
+  повідомлення вигляду `APP_ACTION: GO_GAME` → in-app nav.
+- **7.3 shouldOverrideUrlLoading (in-app target)** — `WebViewClient.
+  shouldOverrideUrlLoading` з custom-scheme (e.g., `app://`) або
+  URL-match, тіло якого виконує in-app nav. NOT counted: deep-link
+  routers, що ведуть тільки у `Intent.ACTION_VIEW` для external
+  schemes (`mailto:`, `tel:`, `whatsapp://`, etc.).
+- **7.4 onReceivedTitle** — `WebChromeClient.onReceivedTitle` з
+  title-match (e.g., `if (title == "Privacy & Policies | <app>")
+  navigateGame()`).
+- **7.5 onPageFinished / onPageStarted** — `WebViewClient.onPageFinished`
+  (або `onPageStarted`) з URL/title match → in-app nav.
 
-Метод **визначається з коду** (Stage 0), не з CLAUDE.md. Якщо у коді
-рівно один — перевіряється його коректність. Якщо нуль — це
-CRITICAL (немає переходу). Якщо два і більше — SUSPICIOUS (надлишок).
+Якщо команда винайшла 7.6+ — додайте сюди після того, як OBSERVATION
+підкаже патерн.
 
 ## Як перевірити
 
@@ -37,49 +59,57 @@ CRITICAL (немає переходу). Якщо два і більше — SUSP
 1. Якщо `landing-mechanism ∈ {custom-tabs, none}` — пропустити правило
    повністю (CustomTabs не редіректить через Privacy Policy у гру —
    ця механіка специфічна для WebView). Reason: "не WebView".
-2. Якщо `landing-mechanism ∈ {webview, both}`, дивитись на
-   `redirect-method` (Stage 0):
-   - **`(none)`** (0 знайдено) → finding `critical`
-     "у коді не знайдено жодного з методів 7.1/7.2/7.3 — Privacy
-     Policy не може передати юзера у гру". Зупинити.
-   - **`(multiple)`** (2+ знайдено) → finding `suspicious`
-     "знайдено кілька методів одночасно — імовірно надлишковий
-     код, який потрібно почистити". Зупинити.
-   - **`7.1` / `7.2` / `7.3`** (рівно один) → перейти до кроку 3.
-3. Залежно від виявленого методу:
-   - **7.1**: знайти виклик `WebViewCompat.addWebMessageListener(...)`.
-     Перевірити, що `allowedOriginRules` непорожній і не містить
-     wildcard `*`. Перевірити, що `WebMessageListener.onPostMessage`
-     валідує `sourceOrigin` і `isMainFrame`.
-   - **7.2**: знайти override `WebChromeClient.onConsoleMessage`.
-     Перевірити, що тіло парсить очікуваний префікс
-     (наприклад, `APP_ACTION:`).
-   - **7.3**: знайти override `WebViewClient.shouldOverrideUrlLoading`
-     і `onPageStarted`. Перевірити, що логіка визначає Privacy Policy
-     за відсутністю `shouldOverrideUrlLoading` до `onPageStarted`.
-4. Якщо метод реалізовано коректно — правило проходить (✅ у
-   "Перевірені інваріанти").
-5. Якщо знайдений, але без валідації origin (для 7.1) → `critical`
-   (security issue).
+2. Якщо `landing-mechanism ∈ {webview, both}`, перейти до dataflow
+   trace: знайти WebView-instance (з Stage 0), перебрати усі
+   callback'и/listener'и, що до нього приєднані (`WebChromeClient`,
+   `WebViewClient`, `WebMessageListener`, повний набір override'нутих
+   методів). Для кожного callback'у простежити, чи його тіло (прямо
+   або транзитивно) досягає **in-app navigation call**:
+   - `navController.navigate(<destination>)` де destination — in-app
+     екран (game / home / settings, не WebView-маршрут).
+   - `startActivity(Intent(context, <InAppActivity>::class.java))`.
+   - Compose state change, що змінює UI на game-екран
+     (через `mutableStateOf` / `viewModel.navigateGame()` / тощо).
+3. Класифікувати знайдені шляхи:
+   - **0 шляхів** до in-app навігації → `CRITICAL` "у коді не знайдено
+     жодного механізму переходу Privacy Policy → in-app destination;
+     інваріант порушено".
+   - **≥1 шлях через catalog pattern** (7.1-7.5) → перейти до кроку 4
+     (верифікація конкретного pattern'у).
+   - **Шлях через novel pattern** (callback не з каталогу, але дійсно
+     веде до in-app nav) → `OBSERVATION` "знайдено новий метод
+     redirect (<callback-name>); інваріант виконується; додайте до
+     каталогу у `rules/flow/redirect-method-correctness.md §Каталог
+     відомих патернів` якщо це свідомий team-pattern".
+   - **2+ шляхів через catalog patterns**, які ОБИДВА реально
+     запускаються і ведуть до in-app nav (не один-real-другий-stub)
+     → `SUSPICIOUS` "знайдено кілька активних redirect-механізмів
+     одночасно — імовірно надлишковий код".
+4. Верифікація конкретного catalog-pattern'у:
+   - **7.1**: перевірити, що `allowedOriginRules` непорожній і не
+     містить wildcard `*`. Перевірити, що `onPostMessage` валідує
+     `sourceOrigin` і `isMainFrame`. Без валідації → `CRITICAL`
+     (security issue, не closed-list issue).
+   - **7.2-7.5**: переконатись, що тіло callback'у дійсно досягає
+     in-app nav, а не просто matches без навігації.
+5. Якщо catalog-pattern реалізовано коректно — правило проходить
+   (✅ у "Перевірені інваріанти").
 
-### Як відрізнити 7.3 від deep-link router'а
+### Як відрізнити catalog-pattern 7.3 від deep-link router'а
 
 `shouldOverrideUrlLoading` часто живе у проєкті **не** як redirect-метод,
 а як обробник зовнішніх схем (`mailto:`, `tel:`, `whatsapp://`,
 `viber://`, `tg://`, `intent://`, `market://`, `geo:`, банківські).
-Це — **deep-link router**, не redirect 7.3. Розрізнення:
+Це — **deep-link router**, не redirect-метод. Розрізнення:
 
 | Що робить тіло після scheme-match | Класифікація |
 |---|---|
-| `Intent(Intent.ACTION_VIEW, uri).also { startActivity(it) }` (зазвичай у `try/catch ActivityNotFoundException`) | deep-link router — НЕ 7.3 |
-| `navController.navigate(...)` / `startActivity(GameActivity)` / іншу in-app навігацію | 7.3 redirect |
+| `Intent(Intent.ACTION_VIEW, uri).also { startActivity(it) }` (зазвичай у `try/catch ActivityNotFoundException`) | deep-link router — НЕ redirect |
+| `navController.navigate(...)` / `startActivity(<in-app Activity>)` / іншу in-app навігацію | 7.3 redirect |
 
 Якщо ВСІ scheme-branches у `shouldOverrideUrlLoading` закінчуються
 external `startActivity(Intent.ACTION_VIEW)` — це чистий deep-link
-router. Stage 0 НЕ повинен рахувати його як 7.3. Це усуває
-false-positive "знайдено кілька методів", коли проєкт використовує
-7.1 або 7.2 як справжній redirect, а `shouldOverrideUrlLoading`
-обслуговує тільки external app launches.
+router; цей override НЕ рахується серед redirect-механізмів.
 
 ## Як виглядає поломка (приклад для 7.1)
 
@@ -129,15 +159,38 @@ WebViewCompat.addWebMessageListener(
 
 ## Як доповідати
 
+**CRITICAL** (інваріант порушено):
 ```
-[flow/redirect-method-correctness] CRITICAL | SUSPICIOUS
-  <file>:<line>   (точка реалізації або найближче місце де метод мав би бути)
-  <у коді не знайдено жодного з методів 7.1/7.2/7.3 — CRITICAL>
-  | <знайдено кілька методів одночасно (X+Y) — імовірно надлишковий код — SUSPICIOUS>
-  | <метод 7.1 реалізовано без валідації origin/frame | wildcard в allowedOriginRules — CRITICAL>
-  | <метод 7.2 реалізовано, але тіло не парсить очікуваний префікс — SUSPICIOUS>
-  | <метод 7.3 реалізовано, але без логіки розрізнення Privacy Policy і game URL — SUSPICIOUS>.
-  Як виправити: <specific guidance per case>.
+[flow/redirect-method-correctness] CRITICAL
+  <file>:<line>   (WebView-instance або найближче місце, де redirect мав би бути)
+  У коді не знайдено жодного механізму переходу Privacy Policy → in-app destination. Жоден WebView callback не досягає `navController.navigate(<in-app>)` / `startActivity(<in-app>)`. Інваріант: після завантаження Privacy Policy юзер має потрапити у гру.
+  Як виправити: реалізуйте перехід через будь-який з catalog-patterns (7.1 addWebMessageListener, 7.2 onConsoleMessage, 7.3 shouldOverrideUrlLoading з in-app target, 7.4 onReceivedTitle, 7.5 onPageFinished + URL/title match) АБО через свій механізм — головне, щоб з якогось WebView callback'у дійсно викликався in-app navigation.
+  Див.: docs/specs/2026-05-05-v2-functional-validator-design.md §3.7
+```
+
+**OBSERVATION** (novel mechanism, інваріант виконується):
+```
+[flow/redirect-method-correctness] OBSERVATION
+  <file>:<line>   (callback override, що виконує перехід)
+  Знайдено новий патерн redirect: `<callback-name>` (поза каталогом 7.1-7.5). Інваріант правила виконується — перехід Privacy Policy → in-app навігація працює. Якщо це свідомий team-патерн, додайте у каталог відомих механізмів у `rules/flow/redirect-method-correctness.md §Каталог відомих патернів`.
+  Див.: docs/specs/2026-05-05-v2-functional-validator-design.md §3.7
+```
+
+**SUSPICIOUS** (2+ catalog-patterns активні):
+```
+[flow/redirect-method-correctness] SUSPICIOUS
+  <file>:<line>
+  Знайдено кілька активних redirect-механізмів одночасно: <patternA у file:line> + <patternB у file:line>. Обидва ведуть до in-app navigation — імовірно надлишковий код, що ускладнює maintenance.
+  Як виправити: залишити один основний механізм; інші прибрати або задекларувати у `accepted-deviations` з поясненням ролі.
+  Див.: docs/specs/2026-05-05-v2-functional-validator-design.md §3.7
+```
+
+**CRITICAL** (catalog-pattern знайдено, але без валідації — для 7.1):
+```
+[flow/redirect-method-correctness] CRITICAL
+  <file>:<line>
+  Метод 7.1 (addWebMessageListener) реалізовано без валідації origin/frame, або `allowedOriginRules` містить wildcard `*`. Будь-яка сторінка може ініціювати перехід у гру.
+  Як виправити: <конкретно>.
   Див.: docs/specs/2026-05-05-v2-functional-validator-design.md §3.7
 ```
 

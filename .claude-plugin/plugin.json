@@ -1,6 +1,6 @@
 {
   "name": "android-review",
-  "version": "2.6.1",
+  "version": "2.7.0",
   "description": "Functional validator for Android (Kotlin/Compose/Hilt) projects. Verifies attribution flow, WebView setup, and POST-encoding pattern via dataflow tracing — not structural grep.",
   "author": {
     "name": "Roman"

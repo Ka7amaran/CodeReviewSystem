@@ -68,9 +68,20 @@ in-app browser, який підставляє URL'и довільно).
      WebView vs. екстракція URL з `resultMsg`/`HitTestResult` напряму
      vs. інший варіант) — класифікуй за паттерном control-flow, а
      не за точним кодом.
-   - У будь-якому іншому місці (button-handler, observer'у LiveData,
-     coroutine-launch після API-відповіді, BroadcastReceiver-callback,
-     navigation-callback з іншого екрану) → **flag як observation**.
+   - **Novel legit context**: якщо callsite знаходиться у явному
+     intentional entry-point handler'і, що легітимно перезавантажує
+     WebView (наприклад, deep-link `onNewIntent` handler з URL'ом для
+     відображення; in-app QR-scanner result callback; user-driven
+     "refresh page" button у Privacy Policy UI) → **emit
+     `OBSERVATION`** "знайдено новий легітимний контекст `loadUrl`:
+     `<name>`; додайте у каталог легітимних контекстів у
+     `rules/webview/loadurl-after-initial.md §Як перевірити` якщо
+     team-pattern". Не flag як smell.
+   - У будь-якому іншому місці (button-handler без явного intentional
+     legit-pattern, observer'у LiveData, coroutine-launch після API-
+     відповіді, BroadcastReceiver-callback, navigation-callback з
+     іншого екрану) → **flag як observation** (вже observation severity,
+     так і лишається).
 
 ### Крок 3 — Один finding на кожен виклик, який не пройшов крок 2
 

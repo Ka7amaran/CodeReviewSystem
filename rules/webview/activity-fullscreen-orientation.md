@@ -43,6 +43,15 @@ Activity, що містить WebView або відкриває CustomTabs, ма
    - Якщо є `show(WindowInsetsCompat.Type.statusBars())` або жодного
      hide → status bar статично видимий → OK.
 4. Кожне порушення — окремий finding `suspicious`.
+5. **Novel mechanism**: якщо команда використовує не
+   `WindowInsetsControllerCompat`, а альтернативний механізм
+   (наприклад, Compose-only через `WindowInsets` composables,
+   `enableEdgeToEdge()` з Activity Compose, custom theme-based
+   fullscreen approach), і функціональний інваріант задовольняється
+   (status bar доступний користувачу — статично або swipe-revealable)
+   → emit `OBSERVATION` "знайдено новий механізм fullscreen
+   configuration: `<name>`; інваріант виконується; додайте у каталог
+   якщо team-pattern". Не emit `SUSPICIOUS`.
 
 ### Що НЕ flag'ити
 
