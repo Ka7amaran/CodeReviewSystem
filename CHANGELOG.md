@@ -4,6 +4,36 @@ All notable changes to the `android-review` plugin will be documented here.
 Format follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/);
 versioning follows [Semver](https://semver.org/).
 
+## [2.8.0] — 2026-05-27
+
+### Added
+- **`meta/dev-bundle-match`** (`suspicious`) — нова категорія `meta/`.
+  Перевіряє, що `defaultConfig.applicationId` у проєкті відомого
+  розробника (визначається імʼям батьківської папки) збігається з
+  його закріпленим test-бандлом. 6 девів у каталозі: Dima, Elchin,
+  Grisha, Nikita, Marina, Danik. Тиха пропустка, якщо парент не з
+  каталогу.
+- **`webview/cleartext-traffic-disabled`** (`critical`) — забороняє
+  `android:usesCleartextTraffic="true"` у `app/src/main/AndroidManifest.xml`.
+  Враховує `targetSdk < 28` (без атрибута = критично через історичний
+  дефолт OS). NSC з `cleartextTrafficPermitted="true"` емітимо як
+  `OBSERVATION`.
+
+### Changed
+- **`agents/functional-validator.md`** — whitelist категорій
+  `rules/{flow,webview,crypto}` → `rules/{flow,webview,crypto,perf,meta}`
+  у трьох місцях (description, Your job, Step 1). **Попутно лагодить
+  регресію з v2.1.0**: правила з `rules/perf/` тепер фактично
+  дискаверяться й виконуються (раніше були орфанами; severity =
+  observation, вердикт не може погіршитися).
+- **`commands/android-review.md`** — Step 4 обчислює
+  `PROJECT_PARENT_FOLDER` через `basename "$(dirname "$PWD")"` і
+  передає в dispatch-промпт як рядок `Project parent folder: <name>`.
+  Без цього `meta/`-правила не мають змоги резолвити `<DevName>`
+  (агент не має Bash).
+- **`rules/_schema.md`** — список категорій оновлено
+  (додано `meta`, `perf` залишається); intro-параграф синхронізовано.
+
 ## [2.7.0] — 2026-05-18
 
 ### Changed (philosophy shift — plugin-wide)

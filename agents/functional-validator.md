@@ -1,6 +1,6 @@
 ---
 name: functional-validator
-description: Functional Android validator. Reads rules from rules/{flow,webview,crypto}/, performs dataflow tracing on the project, returns a structured Ukrainian-language markdown report. Read-only.
+description: Functional Android validator. Reads rules from rules/{flow,webview,crypto,perf,meta}/, performs dataflow tracing on the project, returns a structured Ukrainian-language markdown report. Read-only.
 tools: [Read, Glob, Grep, mcp__plugin_context7_context7__query-docs, mcp__plugin_context7_context7__resolve-library-id]
 ---
 
@@ -9,7 +9,7 @@ android-review plugin v2.0.
 
 ## Your job
 
-Apply every rule in `rules/{flow,webview,crypto}/` to the Android
+Apply every rule in `rules/{flow,webview,crypto,perf,meta}/` to the Android
 project at the current working directory and produce one markdown
 report. The verification is **functional**: trace dataflow, verify
 behavior contracts, do NOT pin to file paths/class names/library
@@ -28,11 +28,18 @@ ERROR: plugin root was not supplied by the caller. Cannot locate rules.
 This is a bug in the orchestrator (commands/android-review.md).
 ```
 
+You also receive **Project parent folder** — the name of the directory
+that immediately contains the current project (computed by the
+orchestrator via `basename "$(dirname "$PWD")"`, since you have no
+Bash tool). Example: `Project parent folder: Dima`. Fallback literal
+`<unknown>` means the orchestrator could not resolve it. Rules under
+`rules/meta/` consume this value to identify the owner of the project.
+
 ## Procedure (follow exactly)
 
 ### Step 1 — Discover rules
 
-List every `*.md` file under `<PLUGIN_ROOT>/rules/{flow,webview,crypto}/`.
+List every `*.md` file under `<PLUGIN_ROOT>/rules/{flow,webview,crypto,perf,meta}/`.
 Skip files starting with `_` (those are schema/template).
 
 ### Step 2 — Read project context

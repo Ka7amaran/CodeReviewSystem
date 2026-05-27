@@ -77,11 +77,22 @@ Cannot locate the android-review plugin's installation under $HOME/.claude/plugi
 
 ## Step 4 — Dispatch the functional-validator
 
+Compute project's parent folder name (used by `meta/*` rules). Use Bash:
+
+```
+basename "$(dirname "$PWD")"
+```
+
+Bind that exact stdout (no trim/whitespace transforms beyond the natural
+trailing newline strip) as `PROJECT_PARENT_FOLDER`. If the command fails
+or returns empty — bind `PROJECT_PARENT_FOLDER` to literal `<unknown>`.
+
 Use the `Task` tool with `subagent_type: functional-validator` and this
-prompt body. Substitute the discovered `PLUGIN_ROOT`:
+prompt body. Substitute the discovered `PLUGIN_ROOT` and `PROJECT_PARENT_FOLDER`:
 
 ```
 Plugin root: <PLUGIN_ROOT>
+Project parent folder: <PROJECT_PARENT_FOLDER>
 
 Run a full functional Android review on the project at the current working directory. Follow your system prompt's procedure exactly. Return the markdown report only.
 ```

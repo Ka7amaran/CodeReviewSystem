@@ -1,7 +1,7 @@
 # Rule file schema (v2.0 — functional)
 
 Every rule lives in `rules/<category>/<rule-id-slug>.md` where `category`
-is one of `flow`, `webview`, `crypto`. The filename slug must match the
+is one of `flow`, `webview`, `crypto`, `perf`, or `meta`. The filename slug must match the
 `id` field after the `/`.
 
 ## Frontmatter (5 mandatory + 1 optional fields)
@@ -10,7 +10,7 @@ is one of `flow`, `webview`, `crypto`. The filename slug must match the
 ---
 id: <category>/<slug>                  # e.g. flow/organic-routing-critical
 severity: critical | suspicious | observation   # see § Severity below
-category: flow | webview | crypto      # duplicates first id segment
+category: flow | webview | crypto | perf | meta   # duplicates first id segment
 applies-to:                            # OPTIONAL hint for the agent's attention
   - <pattern>                          # NOT a hard pre-filter — agent does dataflow tracing
 since: "<semver>"                      # plugin version that introduced the rule
@@ -65,7 +65,8 @@ requires-project-type: with-attribution | no-attribution   # OPTIONAL; if set, r
 - **`flow/`** — application-startup and runtime behavior (UUID,
   push init, attribution, routing, redirect method).
 - **`webview/`** — WebView/CustomTabs configuration and host
-  Activity requirements.
+  Activity requirements; includes baseline Manifest-level security
+  invariants tied to WebView traffic (e.g., cleartext).
 - **`crypto/`** — POST-data encoding pattern (file paths NOT
   pinned; only the pattern).
 - **`perf/`** — performance and pitfall observations
@@ -73,6 +74,9 @@ requires-project-type: with-attribution | no-attribution   # OPTIONAL; if set, r
   improvements: startup-blocking patterns, WebView UX/perf
   pitfalls, runtime-decrypt cost. NEVER blocks the verdict —
   these are advisory, not contracts.
+- **`meta/`** — project-level identity invariants (owner ↔ bundle,
+  applicationId hygiene на час code review). Не звʼязано з runtime
+  поведінкою — стосується «чий і який» проєкту.
 
 Style/security/obfuscation categories from v1.x are deleted —
 they don't map to functional flows.
