@@ -4,6 +4,29 @@ All notable changes to the `android-review` plugin will be documented here.
 Format follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/);
 versioning follows [Semver](https://semver.org/).
 
+## [2.9.0] — 2026-06-02
+
+### Added
+- **`commands/android-review-init.md`** — новий **Step 3
+  «Pre-flight: detect app completeness»**. Перед генерацією
+  `CLAUDE.md` команда greps 3 «completeness markers» —
+  WebView/CustomTabs, Install Referrer Client, OneSignal SDK —
+  по `app/build.gradle*`, `gradle/libs.versions.toml`,
+  `AndroidManifest.xml`, `app/src/main/{java,kotlin}/`. Якщо
+  знайдено ≤ 1 з 3, виводить діагностику (гілка, SHA, які
+  маркери відсутні, до 5 інших локальних гілок) і **hard-blocks**
+  через AskUserQuestion: «продовжити» / «зупинити для перемикання
+  гілки». Має на меті ловити типовий баг — запустили init на
+  порожньому/стаб-чекауті, потім руками переписували `CLAUDE.md`
+  після перемикання гілки.
+
+### Changed
+- Заголовок `/android-review-init` `v2.2` → `v2.3`.
+- Steps 3-7 зсунуті в 4-8 (нова pre-flight займає Step 3 між
+  «refuse overwrite» і «auto-detect project-type»).
+- Додано `Hard constraint`: не пропускати pre-flight; STOP без
+  створення файлів, якщо користувач обирає «зупинити».
+
 ## [2.8.0] — 2026-05-27
 
 ### Added
