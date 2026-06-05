@@ -4,6 +4,44 @@ All notable changes to the `android-review` plugin will be documented here.
 Format follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/);
 versioning follows [Semver](https://semver.org/).
 
+## [2.10.0] — 2026-06-05
+
+### Added
+- **`flow/link-storage-mechanism`** (`observation`,
+  `requires-project-type: with-attribution`) — нове flow-правило.
+  Класифікує, як апка зберігає landing-URL між сесіями:
+  - **`tracker`** — UUID + бекенд резолвить редірект щозапуску.
+  - **`final`** — WebView callback зберігає last-URL із
+    redirect-ланцюга у SharedPreferences / DataStore / Room / File,
+    наступний запуск читає її і відкриває напряму.
+  Для `landing-mechanism = custom-tabs` → завжди `tracker`
+  (CustomTabs не дає WebView callback-ів для перехоплення URL).
+  Для WebView/both — визначається dataflow trace по callback-ах
+  (`doUpdateVisitHistory`, `shouldOverrideUrlLoading`,
+  `onPageStarted/Finished/CommitVisible`, `onReceivedTitle`,
+  `onProgressChanged`). Save без read-on-launch → окремий
+  OBSERVATION про можливий orphan-код (`ambiguous`).
+- **`perf/unused-gradle-dependencies`** (`observation`) — нове
+  perf-правило. Зчитує залежності з `app/build.gradle(.kts)` і
+  `gradle/libs.versions.toml [libraries]`, для кожної визначає
+  типовий import-root, greps `app/src/main/{java,kotlin}/` на
+  присутність. Якщо немає жодного import-у І залежність не у
+  списку винятків (gradle plugins, kapt/ksp processors, theme-only
+  `appcompat`/`material`, layout-only `constraintlayout`, test-only
+  configurations) → OBSERVATION з coordinates і recommendation
+  видалити або обґрунтувати у `accepted-deviations`.
+
+### Changed
+- **`agents/functional-validator.md`** — Stage 0 detection
+  розширено новим обчисленням `link-storage` (4-те поле поряд із
+  `landing-mechanism`, `redirect-method`, `backend-domain`).
+  Виводиться у report header як
+  `**link-storage:** tracker | final | ambiguous | (n/a)  *(detected)*`.
+- **`commands/android-review.md`** — Step 6 extract-ить нове поле
+  `**link-storage:**` із output агента і додає у frontmatter
+  фінального звіту й термінал-summary (Step 8):
+  `**Зберігання посилання:** <link-storage> *(виявлено)*`.
+
 ## [2.9.0] — 2026-06-02
 
 ### Added

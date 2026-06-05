@@ -110,17 +110,17 @@ Use Bash `date "+%Y-%m-%d %H:%M"` for the report date (capture as
 
 ## Step 6 — Compose the final report (Ukrainian)
 
-Extract `landing-mechanism`, `redirect-method`, `backend-domain` from
-the agent's output header (the `**landing-mechanism:**`,
-`**redirect-method:**`, `**backend-domain:**` lines — these are
-**detected**, not declared). Then wrap the agent's output in the
-report skeleton:
+Extract `landing-mechanism`, `redirect-method`, `backend-domain`,
+`link-storage` from the agent's output header (the
+`**landing-mechanism:**`, `**redirect-method:**`, `**backend-domain:**`,
+`**link-storage:**` lines — these are **detected**, not declared).
+Then wrap the agent's output in the report skeleton:
 
 ```
 # Android Review — <project-id>
 
 **Дата:** <REPORT_DATE>  •  **Версія плагіна:** <plugin-version>
-**Тип проєкту:** <project-type>  •  **Лендинг:** <landing-mechanism> *(виявлено)*  •  **Метод редіректу:** <redirect-method or "n/a"> *(виявлено)*
+**Тип проєкту:** <project-type>  •  **Лендинг:** <landing-mechanism> *(виявлено)*  •  **Метод редіректу:** <redirect-method or "n/a"> *(виявлено)*  •  **Зберігання посилання:** <link-storage> *(виявлено)*
 
 ## Вердикт: <verdict>
 
@@ -160,7 +160,7 @@ Print ONLY this compact summary as your final assistant message:
 # Android Review — <project-id>
 
 **Дата:** <REPORT_DATE>  •  **Плагін:** <plugin-version>
-**Тип:** <project-type>  •  **Лендинг:** <landing-mechanism> *(виявлено)*  •  **Редірект:** <redirect-method or "n/a"> *(виявлено)*
+**Тип:** <project-type>  •  **Лендинг:** <landing-mechanism> *(виявлено)*  •  **Редірект:** <redirect-method or "n/a"> *(виявлено)*  •  **Зберігання:** <link-storage> *(виявлено)*
 
 **Вердикт:** <verdict>
 

@@ -130,6 +130,23 @@ URL discovered in the non-organic branch IS the backend-domain.
   (e.g., `crypto/post-data-encoding-pattern`) operate on whatever
   POST endpoint they can find.
 
+**`link-storage`** — derived as side-effect of
+`flow/link-storage-mechanism` dataflow. See that rule for the full
+recipe. Short form:
+- `landing-mechanism = custom-tabs` → `link-storage = tracker`
+  unconditionally (CustomTabs cannot capture redirect-chain URL;
+  storage is always backend-side via UUID).
+- `landing-mechanism ∈ {webview, both}` → trace WebView callbacks
+  (`doUpdateVisitHistory`, `shouldOverrideUrlLoading`,
+  `onPageStarted/Finished/CommitVisible`, `onReceivedTitle`,
+  `onProgressChanged`) for URL → persistent storage
+  (SharedPreferences, DataStore, Room, File). If a save-callback
+  exists AND startup reads the same key → `link-storage = final`.
+  If save exists but no read-on-launch → `link-storage = ambiguous`
+  (rule emits OBSERVATION about orphan code). If no save callback —
+  `link-storage = tracker`.
+- `landing-mechanism = none` → `link-storage = (n/a)`.
+
 Stage 0 outputs are stored as in-memory variables for use by rules
 below. They are NOT errors on their own — they are **inputs** to
 the rules.
@@ -222,6 +239,7 @@ final report)
 **landing-mechanism:** webview | custom-tabs | both | none  *(detected)*
 **redirect-method:** 7.X | (none) | (multiple)  *(detected)*
 **backend-domain:** <URL> | <encrypted-at-rest> | (none)  *(detected)*
+**link-storage:** tracker | final | ambiguous | (n/a)  *(detected)*
 
 ### Критичні
 (finding blocks for critical-severity, or "(відсутні)")
