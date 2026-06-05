@@ -5,7 +5,7 @@ Claude Code плагін для функціонального ревʼю Androi
 конфіг, crypto-патерни і perf-обсервації через **dataflow tracing** —
 а не структурний grep. Звіт у `.claude/reports/`.
 
-Поточна версія — **v2.9.0**. Повна історія: [CHANGELOG.md](CHANGELOG.md).
+Поточна версія — **v2.10.0**. Повна історія: [CHANGELOG.md](CHANGELOG.md).
 
 ---
 
@@ -77,11 +77,11 @@ init заново.
 
 | Категорія  | Що перевіряє                                       | Приклад                                                                          |
 |------------|----------------------------------------------------|----------------------------------------------------------------------------------|
-| `flow/`    | attribution / landing / redirect / POST-encoding   | Install Referrer → landing URL → WebView/CustomTabs — ланцюжок цілий             |
+| `flow/`    | attribution / landing / redirect / POST-encoding   | Tracker vs final link-storage класифікація *(v2.10.0)*                           |
 | `webview/` | WebView/CustomTabs конфіг, cleartext, JS-bridges   | `android:usesCleartextTraffic="true"` заборонено *(v2.8.0)*                      |
 | `crypto/`  | Coverage encoding-патернів, string-literal coverage| Чутливі string literals обернуті в proven-encoding helper                        |
 | `meta/`    | Розробницькі / проєктні інваріанти                 | `applicationId` дева збігається з закріпленим test-бандлом *(v2.8.0)*            |
-| `perf/`    | Лагідні observation-правила (вердикт не блокують)  | Structure observations                                                           |
+| `perf/`    | Лагідні observation-правила (вердикт не блокують)  | Невикористані Gradle-залежності *(v2.10.0)*                                       |
 
 ### Severity
 
