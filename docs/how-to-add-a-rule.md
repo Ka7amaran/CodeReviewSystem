@@ -1,9 +1,9 @@
-# How to add a rule (v2.0)
+# How to add a rule (v2.10)
 
 ## TL;DR
 
 1. `cp rules/_template.md rules/<category>/<your-slug>.md`
-   where `<category>` is `flow`, `webview`, or `crypto`.
+   where `<category>` is `flow`, `webview`, `crypto`, `perf`, or `meta`.
 2. Fill the 5 mandatory frontmatter fields (+ `requires-project-type`
    if applicable).
 3. Fill the 6 body sections (Інваріант / Як перевірити / Як виглядає
@@ -25,9 +25,15 @@
 ## Choosing the right category
 
 - **`flow/`** — runtime behavior on app startup or attribution
-  (UUID, push init, attribution, routing, redirect method).
-- **`webview/`** — WebView/CustomTabs configuration and host Activity.
+  (UUID, push init, attribution, routing, redirect method,
+  link-storage strategy).
+- **`webview/`** — WebView/CustomTabs configuration, host Activity,
+  baseline manifest security tied to WebView traffic (cleartext, NSC).
 - **`crypto/`** — POST-data encoding pattern (no path pinning).
+- **`perf/`** — performance and UX pitfall observations
+  (`severity: observation` only — never blocks the verdict).
+- **`meta/`** — project-level identity invariants (owner ↔ bundle,
+  `applicationId` hygiene). Not tied to runtime behavior.
 
 If a rule doesn't fit these — reconsider whether it should be a static
 rule at all. v2.0's philosophy is functional invariants, not generic
@@ -51,6 +57,11 @@ justification format.
 
 ## Anti-patterns when writing rules
 
+- **Don't write closed-list invariants.** State the contract as an
+  observable end-state ("X happens at runtime"), not as a fixed list
+  of mechanisms ("done via A, B, or C"). Novel implementations must
+  emit OBSERVATION, not CRITICAL — see `rules/_schema.md` §Body
+  §Інваріант (v2.7.0+ functional-invariant philosophy).
 - Don't pin to file paths or class names. The team's apps vary widely
   on structure.
 - Don't pin to library versions or specific SDKs. Multiple SDKs may
