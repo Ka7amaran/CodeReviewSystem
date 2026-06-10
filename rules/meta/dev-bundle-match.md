@@ -30,6 +30,7 @@ since: "2.8.0"
 | `Nikita`  | `com.mobile.legends` |
 | `Marina`  | `com.mergegames.gossipharbor` |
 | `Danik`   | `com.haoplay.game.and.exilium` |
+| `Sasha`   | `zombie.survival.craft.z` |
 
 Імена case-sensitive (саме `Dima`, не `dima`).
 
