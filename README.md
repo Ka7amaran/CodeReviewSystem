@@ -5,7 +5,7 @@ Claude Code плагін для функціонального ревʼю Androi
 конфіг, crypto-патерни і perf-обсервації через **dataflow tracing** —
 а не структурний grep. Звіт у `.claude/reports/`.
 
-Поточна версія — **v2.10.0**. Повна історія: [CHANGELOG.md](CHANGELOG.md).
+Поточна версія — **v2.11.0**. Повна історія: [CHANGELOG.md](CHANGELOG.md).
 
 ---
 
@@ -67,6 +67,11 @@ init заново.
    - Зчитує всі правила.
    - Виконує **dataflow tracing** на коді проєкту.
    - Порівнює знайдені факти з інваріантами правил.
+   - Робить **coverage sweep** *(v2.11.0+)*: інвентаризує механізми
+     апки, які не перевіряє жодне правило (гейти, native, кастомний
+     IPC, сирі сокети, vendored SDK...), і виводить їх у секцію
+     **«Незадекларовані фічі»** з вердиктом — чи виконує механізм
+     задумане розробником. Зламана фіча → SUSPICIOUS.
 3. Архівує попередній звіт у `.claude/reports/archive/<project-id>-<TS>.md`
    і пише новий — `.claude/reports/<project-id>-android-review.md`.
 4. Друкує короткий summary у термінал (повний звіт — у файлі).
@@ -81,7 +86,7 @@ init заново.
 | `webview/` | WebView/CustomTabs конфіг, cleartext, JS-bridges   | `android:usesCleartextTraffic="true"` заборонено *(v2.8.0)*                      |
 | `crypto/`  | Coverage encoding-патернів, string-literal coverage| Чутливі string literals обернуті в proven-encoding helper                        |
 | `meta/`    | Розробницькі / проєктні інваріанти                 | `applicationId` дева збігається з закріпленим test-бандлом *(v2.8.0)*            |
-| `perf/`    | Лагідні observation-правила (вердикт не блокують)  | Невикористані Gradle-залежності *(v2.10.0)*                                       |
+| `perf/`    | Лагідні observation-правила (вердикт не блокують)  | Анімований тематичний сплеш-скрін *(v2.11.0)*                                     |
 
 ### Severity
 

@@ -167,6 +167,7 @@ Print ONLY this compact summary as your final assistant message:
 **Критичні:** <count>
 **Підозрілі:** <count>
 **Спостереження:** <count>
+**Незадекларовані фічі:** <count> (⚠️ <count of "не виконує задумане">)
 **Пропущено правил:** <count>
 
 **Збережено:** `.claude/reports/<project-id>-android-review.md`

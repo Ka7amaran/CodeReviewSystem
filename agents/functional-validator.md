@@ -193,6 +193,61 @@ For each rule:
 4. For each rule that PASSED (no violations) — note for the
    "Перевірені інваріанти" section.
 
+### Step 5b — Coverage sweep (незадекларовані фічі)
+
+After ALL rules are applied, do a **reverse pass**: Stage 0 detects
+what the app HAS; this step finds what the app has **beyond what the
+rule catalog can verify**. Goal: the reviewer must see every
+functional mechanism the report would otherwise stay silent about —
+what it is, what it does, how it relates to the app's overall
+functionality, and whether it achieves what the developer intended.
+
+1. **Inventory functional mechanisms** (read + dataflow trace, not
+   grep-only). Sweep at minimum these surfaces:
+   - **Entry chain**: `Application.onCreate` → launcher Activity →
+     перший екран — і кожен **conditional gate** на цьому шляху
+     (ADB/emulator/debugger/root-детект, connectivity-гейти,
+     time-гейти, будь-яке розгалуження «показати X замість Y»).
+   - **Manifest**: permissions — додані ТА зняті через
+     `tools:node="remove"`; backup-конфіг (`allowBackup`,
+     `dataExtractionRules`, `fullBackupContent`); exported-компоненти;
+     intent-filters.
+   - **Native**: `app/src/main/cpp/**`, `jniLibs/**/*.so`,
+     `System.loadLibrary`, external native build у gradle.
+   - **Vendored SDK sources**: пакети-вихідники третіх сторін у
+     `src/` замість gradle-залежності.
+   - **Кастомний IPC**: ручний `bindService` + `transact`/`Parcel`,
+     AIDL-клієнти, ContentProvider-запити до чужих апок.
+   - **Мережа повз основний HTTP-клієнт**: сирі `Socket`,
+     DNS-запити, окремі/паралельні клієнти.
+   - **Identity-linking**: один ідентифікатор передається у кілька
+     систем (push SDK `login(...)`, analytics, tracker-URL).
+   - **Build-hardening**: R8/minify/shrink, вміст proguard-rules.
+2. **Зіставити з покриттям прогону.** Механізм вважається покритим,
+   якщо БУДЬ-ЯКЕ правило цього прогону його перевірило (pass у
+   «Перевірені інваріанти», fail-фіндінг, або skip із причиною) АБО
+   Stage 0 його задетектив як landing/redirect/backend/link-storage.
+   Покрите → НЕ дублювати у sweep.
+3. **Кожен непокритий механізм → entry** у секцію
+   «Незадекларовані фічі» (структура у Step 7): назва, `file:line`,
+   що робить (1–3 рядки), роль у загальному функціоналі апки, і
+   вердикт за dataflow-трейсом: **✅ виконує задумане** (механізм
+   досяжний і робить те, для чого написаний) чи **⚠️ не виконує
+   задумане** (зламаний, мертвий код, недосяжна гілка, конфлікт
+   конфігурації).
+4. **⚠️ broken → додатковий SUSPICIOUS finding**, tagged
+   `[coverage/undeclared-feature]`, у «Підозрілі»: що зламано, чому
+   не виконує задумане, як виправити. Заглушується через
+   `accepted-deviations` рядком
+   `coverage/undeclared-feature: <фіча> — <причина>` — тоді
+   SUSPICIOUS не емітиться, а entry у секції отримує позначку
+   `(accepted)`.
+5. **НЕ вважається фічею** (не репортити): UI/DI/navigation
+   boilerplate; бібліотеки у штатному вжитку (OkHttp як HTTP-клієнт,
+   Compose, Hilt, Room як БД); усе вже покрите правилами; чисто
+   косметичні утиліти. Якщо після фільтра нічого не лишилось —
+   секція містить `(відсутні)`.
+
 ### Step 6 — Group findings by **emitted finding tag** (NOT frontmatter severity)
 
 Each finding starts with a literal tag: `[<rule-id>] CRITICAL`,
@@ -218,6 +273,9 @@ Routing table (read the tag on the finding, not the rule's frontmatter):
 - `[<rule-id>] CRITICAL` → "### Критичні".
 - `[<rule-id>] SUSPICIOUS` → "### Підозрілі".
 - `[<rule-id>] OBSERVATION` → "### Спостереження".
+- `[coverage/undeclared-feature] SUSPICIOUS` (зі Step 5b) →
+  "### Підозрілі" як звичайний finding; сам **entry** фічі при цьому
+  лишається у "### Незадекларовані фічі" — це дві різні речі.
 
 Within each section, sort by file path (lexicographic) then line
 number (ascending). Findings without a parseable `<file>:<line>` go
@@ -249,6 +307,15 @@ final report)
 
 ### Спостереження
 (finding blocks for observation-severity, or "(відсутні)")
+
+### Незадекларовані фічі (поза каталогом правил)
+
+**1. <Назва механізму>**  ✅ виконує задумане | ⚠️ не виконує задумане | ✅ виконує задумане (accepted)
+  <file>:<line>
+  <що робить; роль у загальному функціоналі апки — 1–3 рядки>
+
+**2. ...**
+(or "(відсутні)")
 
 ### Перевірені інваріанти
 - ✅ <rule-id-1> — <one-line UA description of what it verified>

@@ -4,6 +4,52 @@ All notable changes to the `android-review` plugin will be documented here.
 Format follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/);
 versioning follows [Semver](https://semver.org/).
 
+## [2.11.0] — 2026-06-12
+
+### Added
+- **`perf/splash-screen-quality`** (`observation`) — нове
+  perf-правило. Перевіряє сплеш-скрін за трьома критеріями:
+  (1) **наявність** — SplashScreen API / кастомний Compose-екран /
+  Lottie / AnimationDrawable-AVD / відео-сплеш; (2) **анімованість** —
+  dataflow до стартового екрана: брендований рух vs статична
+  картинка + `delay()` чи голий системний спінер;
+  (3) **тематичність** — judgment call: асети сплеша (drawable/raw,
+  шари Lottie-JSON, палітра) зіставляються з тематикою гри
+  (`app_name`, ігрові асети). Емітить **рівно один** OBSERVATION за
+  пріоритетом відсутній > статичний > нетематичний; усе гаразд →
+  «Перевірені інваріанти».
+- **Coverage sweep — Step 5b** у `agents/functional-validator.md` —
+  зворотний прохід після застосування правил: інвентаризація
+  функціональних механізмів апки (entry-chain гейти —
+  ADB/emulator/root/connectivity; manifest — permissions /
+  `tools:node="remove"` / backup-конфіг / exported; native `cpp/` +
+  `.so`; vendored SDK-вихідники; кастомний IPC `bindService` +
+  `transact`; сирі Socket-и повз основний HTTP-клієнт;
+  identity-linking; R8/proguard) і зіставлення з покриттям прогону.
+  Кожен механізм, який не перевірило жодне правило і не задетектив
+  Stage 0, виводиться у **нову секцію звіту
+  «Незадекларовані фічі (поза каталогом правил)»**: назва,
+  `file:line`, що робить, роль у функціоналі апки, вердикт
+  ✅ виконує задумане / ⚠️ не виконує. Зламана фіча → додатковий
+  **SUSPICIOUS** `[coverage/undeclared-feature]` у «Підозрілі»
+  (заглушується через `accepted-deviations:
+  coverage/undeclared-feature: <фіча> — <причина>`).
+  Мотивація: кейс Fruit-Game — ~10 механізмів (ADB-гейт, Socket:53,
+  AIDL GAID, vendored referrer, `libvault.so`, OneSignal-login(uuid),
+  backup-rules, R8) лишилися поза звітом.
+- **`docs/specs/2026-06-12-splash-and-coverage-sweep-design.md`** —
+  дизайн-док релізу (затверджені рішення, вибір agent-stage
+  архітектури, E2E-очікування).
+
+### Changed
+- **`agents/functional-validator.md`** — Step 7 output: нова секція
+  «### Незадекларовані фічі (поза каталогом правил)» між
+  «Спостереженнями» і «Перевіреними інваріантами»; routing-таблиця
+  Step 6 уточнює: `[coverage/undeclared-feature] SUSPICIOUS` іде у
+  «Підозрілі», а entry фічі лишається у новій секції.
+- **`commands/android-review.md`** — Step 8 термінал-summary: новий
+  рядок `**Незадекларовані фічі:** <N> (⚠️ <M>)`.
+
 ## [2.10.0] — 2026-06-05
 
 ### Added
