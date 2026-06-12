@@ -31,27 +31,45 @@ Activity, що містить WebView або відкриває CustomTabs, ма
      або одним із: `unspecified`, `fullSensor`, `user`,
      `userLandscape`, `userPortrait`, `sensorLandscape`,
      `sensorPortrait`. Не `portrait`/`landscape` (фіксована).
-3. У коді Activity / Compose шукати `WindowInsetsControllerCompat`:
-   - Якщо є `hide(WindowInsetsCompat.Type.statusBars())` або
-     `hide(WindowInsetsCompat.Type.systemBars())` (включає status bar) —
-     перевірити `systemBarsBehavior` у тому самому `apply { }` /
-     налаштуванні controller'а:
-     - `BEHAVIOR_SHOW_TRANSIENT_BARS_BY_SWIPE` → юзер має swipe-доступ
-       до status bar → **НЕ flag'ити**.
-     - `BEHAVIOR_DEFAULT` / не встановлено → status bar прихований без
-       способу його викликати → **flag SUSPICIOUS**.
-   - Якщо є `show(WindowInsetsCompat.Type.statusBars())` або жодного
-     hide → status bar статично видимий → OK.
+3. У коді Activity / Compose шукати один з відомих механізмів
+   fullscreen-конфігурації (каталог extensible, не closed list):
+   - **`WindowInsetsControllerCompat`** (класичний View-based):
+     - Якщо є `hide(WindowInsetsCompat.Type.statusBars())` або
+       `hide(WindowInsetsCompat.Type.systemBars())` (включає status bar) —
+       перевірити `systemBarsBehavior` у тому самому `apply { }` /
+       налаштуванні controller'а:
+       - `BEHAVIOR_SHOW_TRANSIENT_BARS_BY_SWIPE` → юзер має swipe-доступ
+         до status bar → **НЕ flag'ити**.
+       - `BEHAVIOR_DEFAULT` / не встановлено → status bar прихований без
+         способу його викликати → **flag SUSPICIOUS**.
+     - Якщо є `show(WindowInsetsCompat.Type.statusBars())` або жодного
+       hide → status bar статично видимий → OK.
+   - **`enableEdgeToEdge(...)`** з `androidx.activity:activity-compose`
+     (Compose-нативний edge-to-edge):
+     - Виклик `enableEdgeToEdge()` / `enableEdgeToEdge(SystemBarStyle.dark(...))`
+       / `enableEdgeToEdge(statusBarStyle = ..., navigationBarStyle = ...)`
+       у `onCreate()` Activity розширює контент під системні bar'и, але
+       **самі bar'и лишаються видимими** — це інший контракт, ніж
+       `hide(systemBars())`. Status bar статично доступний користувачу
+       (просто прозорий / напівпрозорий поверх контенту) → інваріант
+       виконується → OK, незалежно від наявності `statusBarsPadding()` /
+       `navigationBarsPadding()` (це padding-механіка для layout, не
+       fullscreen-механіка).
+     - Якщо поверх `enableEdgeToEdge()` додатково викликається
+       `WindowInsetsControllerCompat(...).hide(statusBars())` без
+       `BEHAVIOR_SHOW_TRANSIENT_BARS_BY_SWIPE` — застосовується
+       перевірка з попереднього пункту (status bar прихований → flag).
 4. Кожне порушення — окремий finding `suspicious`.
 5. **Novel mechanism**: якщо команда використовує не
-   `WindowInsetsControllerCompat`, а альтернативний механізм
-   (наприклад, Compose-only через `WindowInsets` composables,
-   `enableEdgeToEdge()` з Activity Compose, custom theme-based
-   fullscreen approach), і функціональний інваріант задовольняється
-   (status bar доступний користувачу — статично або swipe-revealable)
-   → emit `OBSERVATION` "знайдено новий механізм fullscreen
-   configuration: `<name>`; інваріант виконується; додайте у каталог
-   якщо team-pattern". Не emit `SUSPICIOUS`.
+   `WindowInsetsControllerCompat` і не `enableEdgeToEdge()`, а
+   альтернативний механізм (наприклад, Compose-only через `WindowInsets`
+   composables без edge-to-edge API, custom theme-based fullscreen
+   approach через `windowFullscreen=true` style, native NDK
+   `ANativeActivity_setWindowFlags`), і функціональний інваріант
+   задовольняється (status bar доступний користувачу — статично або
+   swipe-revealable) → emit `OBSERVATION` "знайдено новий механізм
+   fullscreen configuration: `<name>`; інваріант виконується; додайте
+   у каталог якщо team-pattern". Не emit `SUSPICIOUS`.
 
 ### Що НЕ flag'ити
 
@@ -106,6 +124,24 @@ WindowInsetsControllerCompat(window, window.decorView).apply {
     hide(WindowInsetsCompat.Type.systemBars())
     systemBarsBehavior =
         WindowInsetsControllerCompat.BEHAVIOR_SHOW_TRANSIENT_BARS_BY_SWIPE   // ✅ свайп виводить bar
+}
+```
+
+```kotlin
+// Варіант В — edge-to-edge Compose: контент під bar'ами, bar'и статично видимі
+class WebViewActivity : ComponentActivity() {
+    override fun onCreate(savedInstanceState: Bundle?) {
+        super.onCreate(savedInstanceState)
+        enableEdgeToEdge(
+            statusBarStyle = SystemBarStyle.dark(Color.TRANSPARENT),         // ✅ status bar видимий
+            navigationBarStyle = SystemBarStyle.dark(Color.TRANSPARENT)      // ✅ nav bar видимий
+        )
+        setContent {
+            Box(Modifier.statusBarsPadding().navigationBarsPadding()) {      // ✅ layout padding
+                WebViewScreen()
+            }
+        }
+    }
 }
 ```
 

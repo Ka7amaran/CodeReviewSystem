@@ -77,6 +77,18 @@ URL, API keys, OAuth client IDs, шляхів до encrypted assets тощо).
    - Файл / клас / функція має class-level або file-level
      `@LSParanoid` / `@Obfuscate` / `@StringEncrypt` / еквівалент.
      Файл-level annotation покриває весь файл.
+   - **Gradle-DSL `classFilter` у LSParanoid-плагіні**: у
+     `app/build.gradle.kts` присутній блок
+     `lsparanoid { classFilter = { it.startsWith("com.example.pkg") } }`
+     (або `includeDependencies = true` з аналогічним filter'ом).
+     LSParanoid обробляє compile-time **ВСІ класи**, що матчать filter,
+     **незалежно** від наявності `@Obfuscate`/`@LSParanoid`-annotation.
+     Якщо FQCN файлу матчить predicate → значущі literal'и у файлі
+     покриті, навіть якщо annotation відсутня. Перевірити: прочитати
+     `app/build.gradle.kts`, знайти `lsparanoid { ... }` блок з
+     `classFilter`/`packageFilter`, оцінити predicate на package'і
+     поточного файлу. Це окрема гілка від annotation-driven (per-class
+     opt-in) — паралельний механізм покриття того самого плагіна.
    - Literal використовується ВИКЛЮЧНО як аргумент `.dec(...)` /
      runtime-decrypt функції (тобто це закодований blob, не plaintext).
    - Literal надходить з NDK-функції (JNI-метод, що повертає String /
@@ -116,7 +128,8 @@ Per-file gранулярність: розробник бачить точний
 
 ```kotlin
 // app/src/main/java/com/example/api/BackendUrls.kt
-// ❌ файл НЕ має @LSParanoid, literals НЕ проходять через .dec(...)
+// ❌ файл НЕ має @LSParanoid, literals НЕ проходять через .dec(...),
+//    package не матчить жоден classFilter у app/build.gradle.kts
 object BackendUrls {
     const val PROD_BASE = "https://api.realdomain.store"        // ❌ plaintext
     const val ATTRIBUTION = "/v1/attribution"                    // ❌ plaintext
@@ -148,6 +161,19 @@ object BackendUrls {
     const val PROD_BASE = "https://api.realdomain.store"        // ✅ обфусковано compile-time
     const val ATTRIBUTION = "/v1/attribution"                    // ✅
     const val ONESIGNAL_APP_ID = "abc-123-def-456"               // ✅
+}
+```
+
+```kotlin
+// Варіант А' — Gradle-DSL classFilter покриває весь package
+// app/build.gradle.kts:
+//   lsparanoid { classFilter = { it.startsWith("com.example.api") } }
+// Файл під цим package'ем — НЕ потребує @LSParanoid:
+package com.example.api
+
+object BackendUrls {
+    const val PROD_BASE = "https://api.realdomain.store"        // ✅ обфусковано через classFilter
+    const val ATTRIBUTION = "/v1/attribution"                    // ✅
 }
 ```
 
@@ -184,8 +210,8 @@ val baseUrl = getBackendUrl()                                    // ✅ literal 
 ```
 [crypto/string-literal-encoding-coverage] CRITICAL
   <file>:<line>   (перший проблемний рядок у файлі)
-  Файл містить <N> значущих рядкових літералів, що НЕ покриті обфускацією: <короткий список перших 3-5 у форматі "line X: short preview…">. Файл НЕ має `@LSParanoid` / `@Obfuscate` / еквівалентної annotation, і literals не проходять через runtime-decrypt. У decompiled APK ці рядки видно у plaintext.
-  Як виправити: додайте `@file:LSParanoid` (або еквівалент обфускатора команди) на початок файлу, АБО заведіть literals через runtime-decrypt blob (`.dec(byteArrayOf(...))`), АБО винесіть у NDK-секрет (literal живе у `.so`, не у `.kt`). `BuildConfig` сам по собі НЕ ховає від декомпайлу — використовуйте тільки в комбінації з одним із цих механізмів. Для high-value secrets розгляньте Play Integrity з server-issued key.
+  Файл містить <N> значущих рядкових літералів, що НЕ покриті обфускацією: <короткий список перших 3-5 у форматі "line X: short preview…">. Файл НЕ має `@LSParanoid` / `@Obfuscate` / еквівалентної annotation, package НЕ матчить `lsparanoid { classFilter = ... }` у `app/build.gradle.kts`, і literals не проходять через runtime-decrypt. У decompiled APK ці рядки видно у plaintext.
+  Як виправити: додайте `@file:LSParanoid` (або еквівалент обфускатора команди) на початок файлу, АБО розширте `classFilter`/`packageFilter` у `lsparanoid { ... }` DSL так, щоб він матчив package файлу, АБО заведіть literals через runtime-decrypt blob (`.dec(byteArrayOf(...))`), АБО винесіть у NDK-секрет (literal живе у `.so`, не у `.kt`). `BuildConfig` сам по собі НЕ ховає від декомпайлу — використовуйте тільки в комбінації з одним із цих механізмів. Для high-value secrets розгляньте Play Integrity з server-issued key.
   Див.: docs/specs/2026-05-05-v2-functional-validator-design.md §3.10
 ```
 
