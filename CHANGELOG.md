@@ -4,6 +4,48 @@ All notable changes to the `android-review` plugin will be documented here.
 Format follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/);
 versioning follows [Semver](https://semver.org/).
 
+## [2.12.0] — 2026-07-23
+
+### Added
+- **`flow/non-organic-post-required` — cookie-transport у каталозі
+  механізмів доставки.** Правило переформульовано з «має виконатись
+  HTTP POST» на transport-agnostic інваріант: три атрибуційні значення
+  (**UUID**, **referrer**, **adId/gaid**) мають **дійти до бекенду**,
+  а спосіб доставки вторинний. Додано **«Каталог відомих механізмів
+  доставки»** (розширюваний): (1) HTTP POST з `{uuid, ref, adId}`;
+  (2) **зашифрований cookie на голому домені** — апка кладе три
+  значення у AES-blob (напр. `candySeal`) у cookie `kex`
+  (`{keyu=uuid, keyref=referrer, keya=gaid}`), ставить його через
+  `CookieManager.setCookie(...)` і завантажує голий бекенд-домен;
+  сервер читає cookie server-side. Timing-розщеплення (`uuid`
+  щозапуску, `gaid`+`referrer` на першому запуску) визнано валідним.
+  `## Як доповідати` розбито на CRITICAL (жоден transport) /
+  SUSPICIOUS (бракує значення) / OBSERVATION (transport поза
+  каталогом). Мотивація: кейс jokerjewels2newapi — cookie-доставка
+  раніше емітилась як novel-mechanism OBSERVATION; тепер це відомий
+  team-патерн і йде у «Перевірені інваріанти».
+
+### Fixed
+- **Coverage sweep (Step 5b) — хибний ⚠️ на знятті
+  `BIND_GET_INSTALL_REFERRER_SERVICE`.** Додано блок
+  «Відомо-безпечні manifest-правки»: зняття
+  `com.google.android.finsky.permission.BIND_GET_INSTALL_REFERRER_SERVICE`
+  через `tools:node="remove"` **не ламає** Install Referrer —
+  клієнт не декларує цей дозвіл, `InstallReferrerClient` біндиться до
+  сервісу Play Store явним intent'ом, а дозвіл тримає Play Store
+  (перевірено на реальних апках). Тепер класифікується як
+  ✅ footprint-hardening, а не ⚠️, навіть коли апка активно
+  використовує Install Referrer. ⚠️ лишається доречним лише для
+  зняття дозволу, який реально використовується на досяжному dataflow.
+
+### Note (rule-catalog refinements since 2.11.0, previously unreleased)
+- `crypto/string-literal-encoding-coverage`: додано `classFilter`
+  (LSParanoid Gradle DSL) як другий механізм покриття поряд з
+  анотацією `@LSParanoid`.
+- `webview/activity-fullscreen-orientation`: `enableEdgeToEdge(...)`
+  внесено у каталог механізмів fullscreen поряд з
+  `WindowInsetsControllerCompat`.
+
 ## [2.11.0] — 2026-06-12
 
 ### Added

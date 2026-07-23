@@ -235,6 +235,22 @@ functionality, and whether it achieves what the developer intended.
    досяжний і робить те, для чого написаний) чи **⚠️ не виконує
    задумане** (зламаний, мертвий код, недосяжна гілка, конфлікт
    конфігурації).
+
+   **Відомо-безпечні manifest-правки (класифікувати як ✅, НЕ ⚠️).**
+   Зняття `com.google.android.finsky.permission.BIND_GET_INSTALL_REFERRER_SERVICE`
+   через `tools:node="remove"` **не ламає** збір Install Referrer:
+   клієнтська апка не зобовʼязана декларувати цей дозвіл —
+   `InstallReferrerClient` біндиться до сервісу Play Store явним
+   intent'ом (`com.android.vending`), а сам дозвіл тримає/енфорсить
+   Play Store, не апка (перевірено на реальних апках — referrer
+   працює справно без нього). Тому removal цього дозволу —
+   ✅ footprint-hardening, а не ⚠️, навіть якщо апка активно
+   використовує Install Referrer. Аналогічно ✅ — штатне зняття
+   badge-launcher-ів / `WAKE_LOCK` / `VIBRATE` / `FOREGROUND_SERVICE`
+   / `C2D_MESSAGE`, доданих транзитивно SDK, коли апка цих
+   можливостей не використовує. ⚠️ лишається доречним лише для
+   зняття дозволу, який апка **реально** використовує на досяжному
+   dataflow-шляху.
 4. **⚠️ broken → додатковий SUSPICIOUS finding**, tagged
    `[coverage/undeclared-feature]`, у «Підозрілі»: що зламано, чому
    не виконує задумане, як виправити. Заглушується через

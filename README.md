@@ -5,7 +5,7 @@ Claude Code плагін для функціонального ревʼю Androi
 конфіг, crypto-патерни і perf-обсервації через **dataflow tracing** —
 а не структурний grep. Звіт у `.claude/reports/`.
 
-Поточна версія — **v2.11.0**. Повна історія: [CHANGELOG.md](CHANGELOG.md).
+Поточна версія — **v2.12.0**. Повна історія: [CHANGELOG.md](CHANGELOG.md).
 
 ---
 
